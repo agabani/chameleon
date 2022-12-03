@@ -1,5 +1,5 @@
 #![deny(clippy::pedantic)]
 
 fn main() {
-    println!("Hello, world!");
+    yew::Renderer::<chameleon_frontend::App>::new().render();
 }
