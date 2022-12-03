@@ -1,5 +1,6 @@
 #![deny(clippy::pedantic)]
 
-fn main() {
-    println!("Hello, world!");
+#[tokio::main]
+async fn main() {
+    chameleon_backend::app().await;
 }

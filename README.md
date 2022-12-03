@@ -14,3 +14,9 @@ Run frontend:
 ```terminal
 trunk serve .\crates\chameleon-frontend\index.html
 ```
+
+Run backend:
+
+```terminal
+cargo run --bin chameleon-backend
+```
