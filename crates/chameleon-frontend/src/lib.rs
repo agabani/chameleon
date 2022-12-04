@@ -1,9 +1,8 @@
 #![deny(clippy::pedantic)]
 
-use futures::{
-    channel::mpsc::{channel, Sender},
-    SinkExt, StreamExt,
-};
+use std::rc::Rc;
+
+use futures::{channel::mpsc::channel, SinkExt, StreamExt};
 use gloo::{
     console::{error, log},
     net::{
@@ -16,46 +15,74 @@ use yew::prelude::*;
 
 #[function_component]
 pub fn App() -> Html {
+    let network_service = use_memo(|_| NetworkService::default(), ());
+
+    html! {
+        <ContextProvider<Rc<NetworkService>> context={network_service}>
+            <div>{ "App" }</div>
+            <TestApi />
+            <TestWs />
+        </ContextProvider<Rc<NetworkService>>>
+    }
+}
+
+#[function_component]
+pub fn TestApi() -> Html {
+    let network_service = use_context::<Rc<NetworkService>>().expect("no ctx found");
+
+    let onclick = Callback::from(move |_| {
+        let network_service = network_service.clone();
+
+        spawn_local(async move {
+            let response = network_service.api.ping().await.unwrap();
+            log!(format!("{:?}", response));
+        });
+    });
+
     html! {
         <div>
-            { "App" }
-            <ApiService />
-            <WebsocketService />
+            <button {onclick}>{ "API: [GET] /api/v1/ping" }</button>
         </div>
     }
 }
 
+#[function_component]
+pub fn TestWs() -> Html {
+    let network_service = use_context::<Rc<NetworkService>>().expect("no ctx found");
+
+    let onclick = Callback::from(move |_| {
+        network_service.ws.subscribe();
+        log!("subscribed...");
+    });
+
+    html! {
+        <div>
+            <button {onclick}>{ "WS: [GET] /ws/v1" }</button>
+        </div>
+    }
+}
+
+#[derive(Clone, Default, PartialEq, Eq)]
+struct NetworkService {
+    api: ApiService,
+    ws: WebsocketService,
+}
+
+#[derive(Clone, Default, PartialEq, Eq)]
 struct ApiService {}
 
-impl Component for ApiService {
-    type Message = ();
-
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        spawn_local(async move {
-            let _response = Request::get("/api/v1/ping").send().await.unwrap();
-        });
-
-        Self {}
-    }
-
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        html! {}
+impl ApiService {
+    async fn ping(&self) -> Result<gloo::net::http::Response, gloo::net::Error> {
+        Request::get("/api/v1/ping").send().await
     }
 }
 
-struct WebsocketService {
-    _tx: Sender<String>,
-}
+#[derive(Clone, Default, PartialEq, Eq)]
+struct WebsocketService {}
 
-impl Component for WebsocketService {
-    type Message = ();
-
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        let (tx_in, mut rx_in) = channel::<String>(1000);
+impl WebsocketService {
+    fn subscribe(&self) {
+        let (_tx_in, mut rx_in) = channel::<String>(1000);
 
         let url = gloo::utils::document()
             .location()
@@ -96,11 +123,5 @@ impl Component for WebsocketService {
                 log!(format!("{msg:?}"));
             }
         });
-
-        Self { _tx: tx_in }
-    }
-
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        html! {}
     }
 }

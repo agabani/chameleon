@@ -25,7 +25,9 @@ pub async fn app() {
 }
 
 #[allow(clippy::unused_async)]
+#[tracing::instrument]
 async fn api_v1_ping() -> Json<Value> {
+    tracing::info!("request");
     Json(json!({}))
 }
 
