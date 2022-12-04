@@ -149,7 +149,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "tower",
- "tower-http",
  "tracing",
  "tracing-futures",
  "tracing-subscriber",
@@ -160,8 +159,7 @@ name = "chameleon-frontend"
 version = "0.1.0"
 dependencies = [
  "futures",
- "gloo-console",
- "gloo-net",
+ "gloo",
  "wasm-bindgen-futures",
  "yew",
  "yew-agent",

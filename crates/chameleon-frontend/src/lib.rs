@@ -4,10 +4,12 @@ use futures::{
     channel::mpsc::{channel, Sender},
     SinkExt, StreamExt,
 };
-use gloo_console::{error, log};
-use gloo_net::{
-    http::Request,
-    websocket::{futures::WebSocket, Message},
+use gloo::{
+    console::{error, log},
+    net::{
+        http::Request,
+        websocket::{futures::WebSocket, Message},
+    },
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
@@ -32,10 +34,7 @@ impl Component for ApiService {
 
     fn create(_ctx: &Context<Self>) -> Self {
         spawn_local(async move {
-            let response = Request::get("http://localhost:3000/api/v1/ping")
-                .send()
-                .await
-                .unwrap();
+            let _response = Request::get("/api/v1/ping").send().await.unwrap();
         });
 
         Self {}
@@ -58,7 +57,22 @@ impl Component for WebsocketService {
     fn create(_ctx: &Context<Self>) -> Self {
         let (tx_in, mut rx_in) = channel::<String>(1000);
 
-        let ws = WebSocket::open("ws://localhost:3000/api/v1/ws").unwrap();
+        let url = gloo::utils::document()
+            .location()
+            .map(|location| {
+                format!(
+                    "{}://{}/ws/v1",
+                    if location.protocol().unwrap() == "https" {
+                        "wss"
+                    } else {
+                        "ws"
+                    },
+                    location.host().unwrap()
+                )
+            })
+            .unwrap();
+
+        let ws = WebSocket::open(&url).unwrap();
         let (mut sink, mut stream) = ws.split();
 
         spawn_local(async move {

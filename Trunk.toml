@@ -1,0 +1,9 @@
+[build]
+target = "./crates/chameleon-frontend/index.html"
+
+[[proxy]]
+backend = "ws://localhost:3000/ws/v1"
+ws = true
+
+[[proxy]]
+backend = "http://localhost:3000/api/v1/"
