@@ -4,8 +4,9 @@ use std::time::Duration;
 
 use axum::{
     extract::{ws::WebSocket, State, WebSocketUpgrade},
+    http::StatusCode,
     response::Response,
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use futures::{SinkExt, StreamExt};
@@ -16,11 +17,19 @@ use tokio::time::sleep;
 pub async fn app() {
     let redis_client =
         redis::Client::open("redis://localhost:6379").expect("Failed to create redis client");
+    let redis_connection = redis_client
+        .get_multiplexed_async_connection()
+        .await
+        .expect("Failed to create redis connection");
 
-    let state = AppState { redis_client };
+    let state = AppState {
+        redis_client,
+        redis_connection,
+    };
 
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
+        .route("/api/v1/message", post(api_v1_message))
         .route("/api/v1/ping", get(api_v1_ping))
         .route("/ws/v1", get(ws_v1))
         .with_state(state);
@@ -34,6 +43,7 @@ pub async fn app() {
 #[derive(Clone)]
 struct AppState {
     redis_client: redis::Client,
+    redis_connection: redis::aio::MultiplexedConnection,
 }
 
 #[allow(clippy::unused_async)]
@@ -41,6 +51,15 @@ struct AppState {
 async fn api_v1_ping() -> Json<Value> {
     tracing::info!("request");
     Json(json!({}))
+}
+
+#[tracing::instrument(skip(state))]
+async fn api_v1_message(State(mut state): State<AppState>, body: String) -> StatusCode {
+    redis::Cmd::publish("testing", body)
+        .query_async(&mut state.redis_connection)
+        .await
+        .map(|_: ()| StatusCode::OK)
+        .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
 }
 
 #[allow(clippy::unused_async)]
