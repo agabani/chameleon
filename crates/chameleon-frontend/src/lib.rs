@@ -1,5 +1,7 @@
 #![deny(clippy::pedantic)]
 
+mod components;
+
 use std::rc::Rc;
 
 use futures::{channel::mpsc::channel, SinkExt, StreamExt};
@@ -13,6 +15,8 @@ use gloo::{
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
+use crate::components::chat::Chat;
+
 #[function_component]
 pub fn App() -> Html {
     let network_service = use_memo(|_| NetworkService::default(), ());
@@ -20,6 +24,7 @@ pub fn App() -> Html {
     html! {
         <ContextProvider<Rc<NetworkService>> context={network_service}>
             <div>{ "App" }</div>
+            <Chat />
             <TestApi />
             <TestWs />
         </ContextProvider<Rc<NetworkService>>>
@@ -74,6 +79,10 @@ struct ApiService {}
 impl ApiService {
     async fn ping(&self) -> Result<gloo::net::http::Response, gloo::net::Error> {
         Request::get("/api/v1/ping").send().await
+    }
+
+    async fn message(&self, message: &str) -> Result<gloo::net::http::Response, gloo::net::Error> {
+        Request::post("/api/v1/message").body(message).send().await
     }
 }
 

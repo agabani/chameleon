@@ -161,7 +161,9 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "gloo",
+ "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
  "yew",
  "yew-agent",
  "yew-router",
