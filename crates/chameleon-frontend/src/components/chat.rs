@@ -1,14 +1,16 @@
 use std::rc::Rc;
 
-use gloo::console::error;
-use wasm_bindgen_futures::spawn_local;
+use futures::channel::mpsc::Sender;
+use gloo::{console::error, net::websocket::Message};
 use web_sys::HtmlInputElement;
-use yew::prelude::*;
+use yew::{html::Scope, prelude::*};
 
-use crate::NetworkService;
+use crate::services::Service;
 
 pub enum Msg {
     Submit,
+    Submitted,
+    MessageReceived(String),
 }
 
 #[derive(Properties, PartialEq, Eq)]
@@ -16,6 +18,8 @@ pub struct Props {}
 
 pub struct Chat {
     input: NodeRef,
+    messages: Vec<String>,
+    _sender: Sender<String>,
 }
 
 impl Component for Chat {
@@ -23,9 +27,28 @@ impl Component for Chat {
 
     type Properties = Props;
 
-    fn create(_ctx: &Context<Self>) -> Self {
+    fn create(ctx: &Context<Self>) -> Self {
+        let (service, _) = ctx
+            .link()
+            .context::<Rc<Service>>(Callback::noop())
+            .expect("Failed to find service in context");
+
+        let sender =
+            service
+                .websocket
+                .subscribe(ctx.link().clone(), |link: Scope<Self>, msg| async move {
+                    match msg {
+                        Message::Text(text) => {
+                            link.send_message(Msg::MessageReceived(text));
+                        }
+                        Message::Bytes(_) => {}
+                    };
+                });
+
         Chat {
             input: NodeRef::default(),
+            messages: Vec::new(),
+            _sender: sender,
         }
     }
 
@@ -37,6 +60,7 @@ impl Component for Chat {
 
         html! {
             <div>
+                { self.messages.iter().map(|message| { html!{ <div>{ message }</div> } }).collect::<Html>() }
                 <form onsubmit={submit}>
                     <input ref={self.input.clone()} type="text" />
                     <button type="submit">{ "Send" }</button>
@@ -48,28 +72,39 @@ impl Component for Chat {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Submit => {
-                let input = self
+                let value = self
                     .input
                     .cast::<HtmlInputElement>()
-                    .expect("Failed to find input");
+                    .expect("Failed to find input")
+                    .value();
 
-                let (network_service, _handle) = ctx
+                let (service, _) = ctx
                     .link()
-                    .context::<Rc<NetworkService>>(yew::Callback::noop())
-                    .expect("Failed to find network service in context");
+                    .context::<Rc<Service>>(Callback::noop())
+                    .expect("Failed to find service in context");
 
-                let value = input.value();
-
-                spawn_local(async move {
-                    if let Err(err) = network_service.api.message(&value).await {
+                ctx.link().send_future(async move {
+                    if let Err(err) = service.api.message(&value).await {
                         error!(format!("Failed to send request {:?}", err));
                     }
+                    Msg::Submitted
                 });
 
-                input.set_value("");
+                false
+            }
+            Msg::Submitted => {
+                self.input
+                    .cast::<HtmlInputElement>()
+                    .expect("Failed to find input")
+                    .set_value("");
+
+                false
+            }
+            Msg::MessageReceived(message) => {
+                self.messages.push(message);
+
+                true
             }
         }
-
-        true
     }
 }
