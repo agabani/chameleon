@@ -1,0 +1,51 @@
+.topic-card {
+    background-color: #ffffff;
+    display: grid;
+    gap: 1;
+    grid-template-columns: 0.2fr 1fr 1fr 1fr 1fr;
+
+    div {
+        text-align: center;
+    }
+
+    .coordinate-letter {
+        color: #81dfd1;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .coordinate {
+        color: #81dfd1;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .letter {
+        padding-bottom: 0.25rem;
+        padding-top: 0.25rem;
+    }
+
+    .number {
+        padding-bottom: 1rem;
+        padding-top: 1rem;
+    }
+
+    .name {
+        color: #0080c5;
+        grid-column: span 5;
+        font-weight: 700;
+        font-size: 1.5rem;
+        padding-bottom: 0.25rem;
+        padding-top: 0.25rem;
+    }
+
+    .blue {
+        background-color: #81dfd1;
+    }
+
+    .secret-word {
+        color: #000000;
+        padding-bottom: 1rem;
+        padding-top: 1rem;
+    }
+}

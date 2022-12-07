@@ -1,58 +1,26 @@
-body {
-    background-color: #2b2a33;
-}
+@import 'abstracts/variables';
+@import 'abstracts/mixins';
 
-.topic-card {
-    display: grid;
+@import 'vendors/example';
 
-    grid-template-columns: 0.2fr 1fr 1fr 1fr 1fr;
-    gap: 1;
+@import 'base/reset';
+@import 'base/typography';
 
-    background-color: #ffffff;
+@import 'layout/navigation';
+@import 'layout/grid';
+@import 'layout/header';
+@import 'layout/footer';
+@import 'layout/sidebar';
+@import 'layout/forms';
 
-    div {
-        text-align: center;
-    }
+@import 'components/buttons';
+@import 'components/carousel';
+@import 'components/cover';
+@import 'components/dropdown';
+@import 'components/topic-card';
 
-    .coordinate-letter {
-        color: #81dfd1;
-        font-size: 1.25rem;
-        font-weight: 700;
-    }
+@import 'pages/home';
+@import 'pages/contact';
 
-    .coordinate {
-        color: #81dfd1;
-        font-size: 1.25rem;
-        font-weight: 700;
-    }
-
-    .letter {
-        padding-bottom: 0.25rem;
-        padding-top: 0.25rem;
-    }
-
-    .number {
-        padding-bottom: 1rem;
-        padding-top: 1rem;
-    }
-
-    .name {
-        color: #0080c5;
-        grid-column: span 5;
-        font-weight: 700;
-        font-size: 1.5rem;
-
-        padding-bottom: 0.25rem;
-        padding-top: 0.25rem;
-    }
-
-    .blue {
-        background-color: #81dfd1;
-    }
-
-    .secret-word {
-        color: #000000;
-        padding-bottom: 1rem;
-        padding-top: 1rem;
-    }
-}
+@import 'themes/theme';
+@import 'themes/admin';
