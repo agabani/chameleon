@@ -1,6 +1,6 @@
 use futures::{
     channel::mpsc::{channel, Sender},
-    Future, SinkExt, StreamExt,
+    Future, FutureExt, SinkExt, StreamExt,
 };
 use gloo::{
     console::error,
@@ -33,28 +33,48 @@ impl WebSocketService {
         );
 
         let ws = WebSocket::open(&url).unwrap();
-        let (mut sink, mut stream) = ws.split();
 
         let (tx_send, mut tx_recv) = channel::<String>(1000);
 
         spawn_local(async move {
-            while let Some(msg) = tx_recv.next().await {
-                if let Err(err) = sink.send(Message::Text(msg)).await {
-                    error!(format!("{err:?}"));
-                }
-            }
-        });
+            let (mut sink, mut stream) = ws.split();
 
-        spawn_local(async move {
-            while let Some(msg) = stream.next().await {
-                match msg {
-                    Ok(msg) => callback(state.clone(), msg).await,
-                    Err(err) => {
-                        error!(format!("{err:?}"));
-                        return;
+            while futures::select! {
+                write = tx_recv.next() => {
+                    match write {
+                        Some(msg) => {
+                            if let Err(err) = sink.send(Message::Text(msg)).await {
+                                error!(format!("{err:?}"));
+                                false
+                            } else {
+                                true
+                            }
+                        },
+                        None => false
+                    }
+                },
+                read = stream.next().fuse() => {
+                    match read {
+                        Some(msg) => {
+                            match msg {
+                                Ok(msg) => {
+                                    callback(state.clone(), msg).await;
+                                    true
+                                },
+                                Err(err) => {
+                                    error!(format!("{err:?}"));
+                                    false
+                                }
+                            }
+                        }
+                        None => false
                     }
                 }
-            }
+            } {}
+
+            let ws = sink.reunite(stream).expect("Failed to reunite streams");
+
+            ws.close(None, None).expect("Failed to close websocket");
         });
 
         tx_send

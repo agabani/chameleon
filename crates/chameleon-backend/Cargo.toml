@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.6.1", features = ["ws"] }
+axum = { version = "0.6.1", features = ["headers", "ws"] }
+chameleon-protocol = { version = "0.1.0", path = "../chameleon-protocol" }
 futures = "0.3.25"
 hyper = { version = "0.14.23", features = ["full"] }
 redis = { version = "0.22.1", features = ["aio", "tokio-comp"] }
@@ -17,3 +18,4 @@ tower = "0.4.13"
 tracing = "0.1.37"
 tracing-futures = "0.2.5"
 tracing-subscriber = "0.3.16"
+uuid = { version = "1.2.2", features = ["v4", "serde"] }

@@ -8,7 +8,7 @@ use std::rc::Rc;
 use yew::prelude::*;
 
 use crate::{
-    components::{chat::Chat, topic_card::TopicCard},
+    components::{test_chat::TestChat, test_user::TestUser, topic_card::TopicCard},
     services::Service,
 };
 
@@ -42,7 +42,8 @@ pub fn App() -> Html {
     html! {
         <ContextProvider<Rc<Service>> context={service}>
             <TopicCard {name} {secret_words} />
-            <Chat />
+            <TestUser />
+            <TestChat />
         </ContextProvider<Rc<Service>>>
     }
 }
