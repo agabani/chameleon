@@ -2,30 +2,21 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json, TypedHeader,
+    Json,
 };
 use chameleon_protocol::http;
 
 use crate::{
-    domain::{Database, User},
-    headers::{XChameleonLocalId, XChameleonSessionId},
+    domain::{Database, LocalId, SessionId, User},
     AppState,
 };
 
 #[tracing::instrument(skip(state))]
 pub async fn get(
     State(mut state): State<AppState>,
-    TypedHeader(local_id): TypedHeader<XChameleonLocalId>,
-    TypedHeader(session_id): TypedHeader<XChameleonSessionId>,
+    local_id: LocalId,
+    session_id: SessionId,
 ) -> Response {
-    let local_id = match local_id.try_into() {
-        Ok(local_id) => local_id,
-        Err(err) => {
-            tracing::warn!(err =? err, "Invalid local id");
-            return StatusCode::BAD_REQUEST.into_response();
-        }
-    };
-
     let user_id =
         match Database::find_or_create_user_id(&local_id, &mut state.redis_connection).await {
             Ok(user_id) => user_id,
@@ -59,19 +50,11 @@ pub async fn get(
 #[tracing::instrument(skip(state))]
 pub async fn put(
     State(mut state): State<AppState>,
-    TypedHeader(local_id): TypedHeader<XChameleonLocalId>,
-    TypedHeader(session_id): TypedHeader<XChameleonSessionId>,
+    local_id: LocalId,
+    session_id: SessionId,
     Json(payload): Json<http::UserRequest>,
 ) -> Response {
     tracing::info!("Request");
-
-    let local_id = match local_id.try_into() {
-        Ok(local_id) => local_id,
-        Err(err) => {
-            tracing::warn!(err =? err, "Invalid local id");
-            return StatusCode::BAD_REQUEST.into_response();
-        }
-    };
 
     let user_id =
         match Database::find_or_create_user_id(&local_id, &mut state.redis_connection).await {

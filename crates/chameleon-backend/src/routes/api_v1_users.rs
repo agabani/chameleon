@@ -4,21 +4,20 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json, TypedHeader,
+    Json,
 };
 use chameleon_protocol::http;
 
 use crate::{
-    domain::{Database, UserId},
-    headers::{XChameleonLocalId, XChameleonSessionId},
+    domain::{Database, LocalId, SessionId, UserId},
     AppState,
 };
 
 #[tracing::instrument(skip(state))]
 pub async fn get(
     State(mut state): State<AppState>,
-    TypedHeader(local_id): TypedHeader<XChameleonLocalId>,
-    TypedHeader(session_id): TypedHeader<XChameleonSessionId>,
+    local_id: LocalId,
+    session_id: SessionId,
     Path(user_id): Path<String>,
 ) -> Response {
     tracing::info!("request");

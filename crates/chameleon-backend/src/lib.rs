@@ -1,7 +1,7 @@
 #![deny(clippy::pedantic)]
 
 mod domain;
-mod headers;
+mod extract;
 mod routes;
 
 use axum::{

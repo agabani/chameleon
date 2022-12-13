@@ -1,6 +1,5 @@
 use crate::{
-    domain::Database,
-    headers::{XChameleonLocalId, XChameleonSessionId},
+    domain::{Database, LocalId, SessionId},
     AppState,
 };
 
@@ -8,26 +7,18 @@ use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json, TypedHeader,
+    Json,
 };
 use chameleon_protocol::{http, ws};
 
 #[tracing::instrument(skip(state))]
 pub async fn post(
     State(mut state): State<AppState>,
-    TypedHeader(local_id): TypedHeader<XChameleonLocalId>,
-    TypedHeader(session_id): TypedHeader<XChameleonSessionId>,
+    local_id: LocalId,
+    session_id: SessionId,
     Json(body): Json<http::MessageRequest>,
 ) -> Response {
     tracing::info!("request");
-
-    let local_id = match local_id.try_into() {
-        Ok(local_id) => local_id,
-        Err(err) => {
-            tracing::warn!(err =? err, "Invalid local id");
-            return StatusCode::BAD_REQUEST.into_response();
-        }
-    };
 
     let user_id =
         match Database::find_or_create_user_id(&local_id, &mut state.redis_connection).await {
