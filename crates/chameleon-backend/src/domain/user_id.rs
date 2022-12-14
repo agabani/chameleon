@@ -17,10 +17,10 @@ impl UserId {
     }
 }
 
-impl std::str::FromStr for UserId {
-    type Err = uuid::Error;
+// impl std::str::FromStr for UserId {
+//     type Err = uuid::Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(Uuid::from_str(s)?))
-    }
-}
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         Ok(Self(Uuid::from_str(s)?))
+//     }
+// }
