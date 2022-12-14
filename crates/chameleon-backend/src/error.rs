@@ -3,6 +3,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
+#[allow(clippy::module_name_repetitions)]
 pub enum ApiError {
     RedisError(redis::RedisError),
 }
