@@ -31,9 +31,7 @@ pub async fn post(
         content: body.content,
     });
 
-    redis::Cmd::publish("testing", serde_json::to_string(&message).unwrap())
-        .query_async(&mut state.redis_connection)
-        .await?;
+    Database::publish_message(message, &mut state.redis_connection).await?;
 
     Ok(StatusCode::OK.into_response())
 }

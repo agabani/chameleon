@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use chameleon_protocol::ws;
 use uuid::Uuid;
 
 use super::{LocalId, User, UserId};
@@ -55,6 +56,18 @@ impl Database {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn publish_message<C>(
+        message: ws::Response,
+        c: &mut C,
+    ) -> Result<(), redis::RedisError>
+    where
+        C: redis::aio::ConnectionLike,
+    {
+        redis::Cmd::publish("testing", serde_json::to_string(&message).unwrap())
+            .query_async(c)
+            .await
     }
 }
 
