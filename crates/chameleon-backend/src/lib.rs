@@ -1,6 +1,7 @@
 #![deny(clippy::pedantic)]
 
 mod domain;
+mod error;
 mod extract;
 mod routes;
 

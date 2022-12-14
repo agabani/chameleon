@@ -1,5 +1,6 @@
 use crate::{
     domain::{Database, LocalId, SessionId},
+    error::ApiError,
     AppState,
 };
 
@@ -17,25 +18,12 @@ pub async fn post(
     local_id: LocalId,
     session_id: SessionId,
     Json(body): Json<http::MessageRequest>,
-) -> Response {
-    tracing::info!("request");
+) -> Result<Response, ApiError> {
+    let user_id = Database::find_or_create_user_id(&local_id, &mut state.redis_connection).await?;
 
-    let user_id =
-        match Database::find_or_create_user_id(&local_id, &mut state.redis_connection).await {
-            Ok(user_id) => user_id,
-            Err(err) => {
-                tracing::error!(err =? err, "Failed to find or create user id");
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-            }
-        };
-
-    let user = match Database::get_user(user_id, &mut state.redis_connection).await {
-        Ok(user_id) => user_id.expect("Failed to get user by id"),
-        Err(err) => {
-            tracing::error!(err =? err, "Failed to get user by id");
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
-    };
+    let user = Database::get_user(user_id, &mut state.redis_connection)
+        .await?
+        .expect("Failed to get user by id");
 
     let message = ws::Response::Message(ws::MessageResponse {
         user_id: user_id.as_string(),
@@ -43,12 +31,9 @@ pub async fn post(
         content: body.content,
     });
 
-    let message = serde_json::to_string(&message).unwrap();
-
-    redis::Cmd::publish("testing", message)
+    redis::Cmd::publish("testing", serde_json::to_string(&message).unwrap())
         .query_async(&mut state.redis_connection)
-        .await
-        .map(|_: ()| StatusCode::OK)
-        .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
-        .into_response()
+        .await?;
+
+    Ok(StatusCode::OK.into_response())
 }

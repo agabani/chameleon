@@ -10,6 +10,7 @@ use chameleon_protocol::http;
 
 use crate::{
     domain::{Database, LocalId, SessionId, UserId},
+    error::ApiError,
     AppState,
 };
 
@@ -19,26 +20,18 @@ pub async fn get(
     local_id: LocalId,
     session_id: SessionId,
     Path(user_id): Path<String>,
-) -> Response {
-    tracing::info!("request");
-
+) -> Result<Response, ApiError> {
     let user_id = match UserId::from_str(&user_id) {
         Ok(user_id) => user_id,
         Err(err) => {
             tracing::warn!(err =? err, "Invalid user id");
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            return Ok(StatusCode::INTERNAL_SERVER_ERROR.into_response());
         }
     };
 
-    let user = match Database::get_user(user_id, &mut state.redis_connection).await {
-        Ok(user) => user,
-        Err(err) => {
-            tracing::error!(err =? err, "Failed to get user");
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
-        }
-    };
+    let user = Database::get_user(user_id, &mut state.redis_connection).await?;
 
-    match user {
+    Ok(match user {
         Some(user) => (
             StatusCode::OK,
             Json(http::UserResponse {
@@ -48,5 +41,5 @@ pub async fn get(
         )
             .into_response(),
         None => StatusCode::NOT_FOUND.into_response(),
-    }
+    })
 }
