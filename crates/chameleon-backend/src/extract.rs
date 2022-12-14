@@ -5,7 +5,6 @@ use axum::{
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
-use uuid::Uuid;
 
 use crate::domain::{LocalId, SessionId};
 
@@ -31,7 +30,7 @@ impl<S> FromRequestParts<S> for LocalId {
                     "Header of type `x-chameleon-local-id` was missing",
                 ))?;
 
-            Uuid::from_str(header).map(LocalId::new).map_err(|_| {
+            LocalId::from_str(header).map_err(|_| {
                 (
                     StatusCode::BAD_REQUEST,
                     "Header of type `x-chameleon-local-id` was malformed",
@@ -63,7 +62,7 @@ impl<S> FromRequestParts<S> for SessionId {
                     "Header of type `x-chameleon-session-id` was missing",
                 ))?;
 
-            Uuid::from_str(header).map(SessionId::new).map_err(|_| {
+            SessionId::from_str(header).map_err(|_| {
                 (
                     StatusCode::BAD_REQUEST,
                     "Header of type `x-chameleon-session-id` was malformed",

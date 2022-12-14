@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use uuid::Uuid;
 
 use super::{LocalId, User, UserId};
@@ -23,8 +25,7 @@ impl Database {
             redis::Cmd::get(&key).query_async(c).await?
         };
 
-        let uuid = Uuid::parse_str(&user_id).expect("Failed to parse user id");
-        Ok(UserId::new(uuid))
+        Ok(UserId::from_str(&user_id).expect("Failed to parse user id"))
     }
 
     pub async fn get_user<C>(user_id: UserId, c: &mut C) -> Result<Option<User>, redis::RedisError>
