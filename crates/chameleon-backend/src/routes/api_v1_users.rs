@@ -19,17 +19,13 @@ pub async fn get(
     session_id: SessionId,
     Path(user_id): Path<UserId>,
 ) -> Result<Response, ApiError> {
-    let user = Database::get_user(user_id, &mut state.redis_connection).await?;
-
-    Ok(match user {
-        Some(user) => (
-            StatusCode::OK,
-            Json(http::UserResponse {
-                id: user_id.as_string(),
-                name: user.name().to_string(),
-            }),
-        )
-            .into_response(),
-        None => StatusCode::NOT_FOUND.into_response(),
-    })
+    if let Some(user) = Database::get_user(user_id, &mut state.redis_connection).await? {
+        let response = http::UserResponse {
+            id: user_id.as_string(),
+            name: user.name().to_string(),
+        };
+        Ok((StatusCode::OK, Json(response)).into_response())
+    } else {
+        Ok(StatusCode::NOT_FOUND.into_response())
+    }
 }
