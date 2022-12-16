@@ -12,7 +12,7 @@ use axum::{
     Router,
 };
 use axum_extra::routing::SpaRouter;
-use routes::{api_v1_message, api_v1_ping, api_v1_user, api_v1_users, ws_v1};
+use routes::{api_v1_message, api_v1_ping, api_v1_telemetry, api_v1_user, api_v1_users, ws_v1};
 
 #[allow(clippy::missing_panics_doc)]
 pub async fn app() {
@@ -33,6 +33,7 @@ pub async fn app() {
         .merge(SpaRouter::new("/", "dist"))
         .route("/api/v1/message", post(api_v1_message::post))
         .route("/api/v1/ping", get(api_v1_ping::get))
+        .route("/api/v1/telemetry", post(api_v1_telemetry::post))
         .route("/api/v1/user", get(api_v1_user::get))
         .route("/api/v1/user", put(api_v1_user::put))
         .route("/api/v1/users/:user_id", get(api_v1_users::get))

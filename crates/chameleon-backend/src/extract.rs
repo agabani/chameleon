@@ -6,14 +6,17 @@ use axum::{
     http::{request::Parts, StatusCode},
 };
 
-use crate::domain::{LocalId, SessionId};
+use crate::{
+    domain::{AuthenticationId, Database, LocalId, SessionId},
+    AppState,
+};
 
-impl<S> FromRequestParts<S> for LocalId {
+impl FromRequestParts<AppState> for AuthenticationId {
     type Rejection = (StatusCode, &'static str);
 
     fn from_request_parts<'life0, 'life1, 'async_trait>(
         parts: &'life0 mut Parts,
-        _state: &'life1 S,
+        state: &'life1 AppState,
     ) -> Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
     where
         'life0: 'async_trait,
@@ -30,29 +33,13 @@ impl<S> FromRequestParts<S> for LocalId {
                     "Header of type `x-chameleon-local-id` was missing",
                 ))?;
 
-            LocalId::from_str(header).map_err(|_| {
+            let local_id = LocalId::from_str(header).map_err(|_| {
                 (
                     StatusCode::BAD_REQUEST,
                     "Header of type `x-chameleon-local-id` was malformed",
                 )
-            })
-        })
-    }
-}
+            })?;
 
-impl<S> FromRequestParts<S> for SessionId {
-    type Rejection = (StatusCode, &'static str);
-
-    fn from_request_parts<'life0, 'life1, 'async_trait>(
-        parts: &'life0 mut Parts,
-        _state: &'life1 S,
-    ) -> Pin<Box<dyn Future<Output = Result<Self, Self::Rejection>> + Send + 'async_trait>>
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async move {
             let header = parts
                 .headers
                 .get("x-chameleon-session-id")
@@ -62,12 +49,25 @@ impl<S> FromRequestParts<S> for SessionId {
                     "Header of type `x-chameleon-session-id` was missing",
                 ))?;
 
-            SessionId::from_str(header).map_err(|_| {
+            let session_id = SessionId::from_str(header).map_err(|_| {
                 (
                     StatusCode::BAD_REQUEST,
                     "Header of type `x-chameleon-session-id` was malformed",
                 )
-            })
+            })?;
+
+            let mut redis_connection = state.redis_connection.clone();
+
+            let user_id = Database::find_or_create_user_id(&local_id, &mut redis_connection)
+                .await
+                .map_err(|_| {
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "An unexpected error has occured",
+                    )
+                })?;
+
+            Ok(AuthenticationId::new(local_id, session_id, user_id))
         })
     }
 }

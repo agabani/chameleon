@@ -51,7 +51,7 @@ impl ApiService {
     }
 
     pub async fn get_user_by_id(&self, user_id: &str) -> Result<Option<http::UserResponse>, Error> {
-        let response = Request::get(&format!("/api/v1/users/{}", user_id))
+        let response = Request::get(&format!("/api/v1/users/{user_id}"))
             .authentication_headers()
             .send()
             .await?;

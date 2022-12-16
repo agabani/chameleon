@@ -99,7 +99,12 @@ async fn ws_v1_handler(websocket: WebSocket, state: AppState) {
                 }
             };
 
-            tracing::info!("{:?}", msg);
+            match msg {
+                Message::Text(_) | Message::Binary(_) | Message::Close(_) => {
+                    tracing::info!(msg =? msg, "msg");
+                }
+                Message::Ping(_) | Message::Pong(_) => {}
+            };
         }
     });
 }

@@ -7,7 +7,7 @@ use axum::{
 use chameleon_protocol::http;
 
 use crate::{
-    domain::{Database, LocalId, SessionId, UserId},
+    domain::{AuthenticationId, Database, UserId},
     error::ApiError,
     AppState,
 };
@@ -15,8 +15,7 @@ use crate::{
 #[tracing::instrument(skip(state))]
 pub async fn get(
     State(mut state): State<AppState>,
-    local_id: LocalId,
-    session_id: SessionId,
+    authentication_id: AuthenticationId,
     Path(user_id): Path<UserId>,
 ) -> Result<Response, ApiError> {
     if let Some(user) = Database::get_user(user_id, &mut state.redis_connection).await? {
