@@ -27,8 +27,8 @@ impl WebSocketService {
         let host = location.host().expect("Failed to get location host");
 
         let url = format!(
-            "{}://{}/ws/v1",
-            if protocol == "https" { "wss" } else { "ws" },
+            "{}//{}/ws/v1",
+            if protocol == "https:" { "wss:" } else { "ws:" },
             host
         );
 
