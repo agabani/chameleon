@@ -1,0 +1,10 @@
+services:
+  chameleon:
+    build: .
+    environment:
+      CHAMELEON_REDIS_URL: redis://redis:6379
+    ports:
+      - 3000:3000
+    restart: unless-stopped
+  redis:
+    image: redis:latest

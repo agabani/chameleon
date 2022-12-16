@@ -1,0 +1,7 @@
+*
+
+!/.docker
+!/crates
+!/Cargo.lock
+!/Cargo.toml
+!/Trunk.toml
