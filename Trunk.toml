@@ -1,5 +1,9 @@
 [build]
+dist = "dist"
 target = "./crates/chameleon-frontend/index.html"
+
+[clean]
+dist = "dist"
 
 [[proxy]]
 backend = "ws://localhost:3000/ws/v1"
