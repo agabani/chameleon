@@ -1,10 +1,12 @@
 #![deny(clippy::pedantic)]
 
+mod args;
 mod domain;
 mod error;
 mod extract;
 mod routes;
 
+use args::Args;
 use axum::{
     routing::{get, post, put},
     Router,
@@ -14,8 +16,9 @@ use routes::{api_v1_message, api_v1_ping, api_v1_user, api_v1_users, ws_v1};
 
 #[allow(clippy::missing_panics_doc)]
 pub async fn app() {
-    let redis_client =
-        redis::Client::open("redis://localhost:6379").expect("Failed to create redis client");
+    let args = Args::parse();
+
+    let redis_client = redis::Client::open(args.redis_url).expect("Failed to create redis client");
     let redis_connection = redis_client
         .get_multiplexed_async_connection()
         .await

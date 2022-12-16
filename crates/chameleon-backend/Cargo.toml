@@ -9,6 +9,7 @@ edition = "2021"
 axum = { version = "0.6.1", features = ["headers", "ws"] }
 axum-extra = { version = "0.4.2", features = ["spa"] }
 chameleon-protocol = { version = "0.1.0", path = "../chameleon-protocol" }
+clap = { version = "4.0.29", features = ["derive", "env"] }
 futures = "0.3.25"
 hyper = { version = "0.14.23", features = ["full"] }
 redis = { version = "0.22.1", features = ["aio", "tokio-comp"] }
