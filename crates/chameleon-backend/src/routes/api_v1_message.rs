@@ -1,3 +1,5 @@
+use std::net::SocketAddr;
+
 use crate::{
     domain::{AuthenticationId, Database},
     error::ApiError,
@@ -5,7 +7,7 @@ use crate::{
 };
 
 use axum::{
-    extract::State,
+    extract::{ConnectInfo, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -14,6 +16,7 @@ use chameleon_protocol::{http, ws};
 
 #[tracing::instrument(skip(state))]
 pub async fn post(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(mut state): State<AppState>,
     authentication_id: AuthenticationId,
     Json(body): Json<http::MessageRequest>,

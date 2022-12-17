@@ -1,5 +1,7 @@
+use std::net::SocketAddr;
+
 use axum::{
-    extract::Query,
+    extract::{ConnectInfo, Query},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -14,6 +16,7 @@ use crate::{domain::AuthenticationId, error::ApiError};
 #[allow(clippy::unused_async)] // reason = "required by `axum::Router`"
 #[instrument]
 pub async fn post(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     authentication_id: AuthenticationId,
     query: Query<PostQuery>,
     json: Json<Value>,

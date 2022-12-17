@@ -35,7 +35,7 @@ impl Component for Ui {
         let service = Service::from_context(ctx);
 
         spawn_local(async move {
-            let _ = service
+            service
                 .api
                 .post_telemetry(
                     &serde_json::json!({

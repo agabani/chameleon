@@ -6,6 +6,8 @@ mod error;
 mod extract;
 mod routes;
 
+use std::net::SocketAddr;
+
 use args::Args;
 use axum::{
     routing::{get, post, put},
@@ -41,7 +43,7 @@ pub async fn app() {
         .with_state(state);
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
-        .serve(app.into_make_service())
+        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
         .await
         .unwrap();
 }

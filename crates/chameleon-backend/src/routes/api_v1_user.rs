@@ -1,5 +1,7 @@
+use std::net::SocketAddr;
+
 use axum::{
-    extract::State,
+    extract::{ConnectInfo, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -14,6 +16,7 @@ use crate::{
 
 #[tracing::instrument(skip(state))]
 pub async fn get(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(mut state): State<AppState>,
     authentication_id: AuthenticationId,
 ) -> Result<Response, ApiError> {

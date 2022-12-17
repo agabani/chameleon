@@ -1,9 +1,9 @@
-use std::{str::FromStr, time::Duration};
+use std::{net::SocketAddr, str::FromStr, time::Duration};
 
 use axum::{
     extract::{
         ws::{Message, WebSocket},
-        State, WebSocketUpgrade,
+        ConnectInfo, State, WebSocketUpgrade,
     },
     response::Response,
 };
@@ -21,7 +21,11 @@ use crate::{
 
 #[allow(clippy::unused_async)]
 #[tracing::instrument(skip(state, ws))]
-pub async fn get(ws: WebSocketUpgrade, State(state): State<AppState>) -> Response {
+pub async fn get(
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    ws: WebSocketUpgrade,
+    State(state): State<AppState>,
+) -> Response {
     tracing::info!("request");
     ws.on_upgrade(|ws| ws_v1_handler(ws, state))
 }
