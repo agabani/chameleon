@@ -1,5 +1,8 @@
 use chameleon_protocol::http;
-use gloo::net::{http::Request, Error};
+use gloo::{
+    console,
+    net::{http::Request, Error},
+};
 
 use super::storage::{local_id, session_id};
 
@@ -75,6 +78,38 @@ impl ApiService {
 
         match response.status() {
             204 => Ok(()),
+            status => todo!("Unexpected status code: {status}"),
+        }
+    }
+
+    pub async fn post_telemetry<T>(&self, value: &T, level: http::TelemetryLevel)
+    where
+        T: serde::Serialize,
+    {
+        let request = match Request::post("/api/v1/telemetry")
+            .authentication_headers()
+            .query([("level", level)])
+            .json(value)
+        {
+            Ok(request) => request,
+            Err(err) => {
+                return console::error!(format!("{err:?}"), "Failed to build request");
+            }
+        };
+
+        let response = match request.send().await {
+            Ok(response) => response,
+            Err(err) => {
+                return console::error!(format!("{err:?}"), "Failed to send request");
+            }
+        };
+
+        if response.status() != 200 {
+            return console::error!(response.status(), "Unexpected status code");
+        }
+
+        match response.status() {
+            200 => {}
             status => todo!("Unexpected status code: {status}"),
         }
     }
