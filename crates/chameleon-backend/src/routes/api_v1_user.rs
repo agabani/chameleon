@@ -1,7 +1,5 @@
-use std::net::SocketAddr;
-
 use axum::{
-    extract::{ConnectInfo, State},
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -9,20 +7,15 @@ use axum::{
 use chameleon_protocol::http;
 
 use crate::{
-    domain::{AuthenticationId, Database, User},
+    database::Database,
+    domain::{User, UserId},
     error::ApiError,
     AppState,
 };
 
 #[tracing::instrument(skip(state))]
-pub async fn get(
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(mut state): State<AppState>,
-    authentication_id: AuthenticationId,
-) -> Result<Response, ApiError> {
-    if let Some(user) =
-        Database::get_user(authentication_id.user_id(), &mut state.redis_connection).await?
-    {
+pub async fn get(State(state): State<AppState>, user_id: UserId) -> Result<Response, ApiError> {
+    if let Some(user) = Database::get_user_by_id(user_id, &state.postgres_pool).await? {
         let response = http::UserResponse {
             id: user.id().as_string(),
             name: user.name().to_string(),
@@ -35,15 +28,10 @@ pub async fn get(
 
 #[tracing::instrument(skip(state))]
 pub async fn put(
-    State(mut state): State<AppState>,
-    authentication_id: AuthenticationId,
+    State(state): State<AppState>,
+    user_id: UserId,
     Json(payload): Json<http::UserRequest>,
 ) -> Result<Response, ApiError> {
-    Database::update_user(
-        &User::new(authentication_id.user_id(), payload.name),
-        &mut state.redis_connection,
-    )
-    .await?;
-
+    Database::save_user(&User::new(user_id, payload.name), &state.postgres_pool).await?;
     Ok((StatusCode::NO_CONTENT).into_response())
 }

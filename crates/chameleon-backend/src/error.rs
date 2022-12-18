@@ -5,21 +5,21 @@ use axum::{
 
 #[allow(clippy::module_name_repetitions)]
 pub enum ApiError {
-    RedisError(redis::RedisError),
+    SqlxError(sqlx::Error),
 }
 
-impl From<redis::RedisError> for ApiError {
-    fn from(error: redis::RedisError) -> Self {
-        Self::RedisError(error)
+impl From<sqlx::Error> for ApiError {
+    fn from(error: sqlx::Error) -> Self {
+        Self::SqlxError(error)
     }
 }
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
-            ApiError::RedisError(_) => (
+            ApiError::SqlxError(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "An unexpected error has occured",
+                "An unexpected error has occurred",
             )
                 .into_response(),
         }

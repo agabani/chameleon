@@ -8,6 +8,10 @@ impl UserId {
         Self(uuid)
     }
 
+    pub fn random() -> Self {
+        Self(Uuid::new_v4())
+    }
+
     pub fn value(&self) -> Uuid {
         self.0
     }

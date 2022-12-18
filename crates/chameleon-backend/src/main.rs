@@ -1,13 +1,13 @@
 #![deny(clippy::pedantic)]
 
-use tracing::Level;
-use tracing_subscriber::{filter::LevelFilter, fmt::layer, prelude::*, registry};
+use tracing_subscriber::{fmt::layer, prelude::*, registry, EnvFilter};
 
 #[tokio::main]
 async fn main() {
-    let fmt = layer().pretty();
-    let filter = LevelFilter::from_level(Level::INFO);
-    registry().with(fmt).with(filter).init();
+    registry()
+        .with(layer().pretty())
+        .with(EnvFilter::from_env("CHAMELEON_LOG"))
+        .init();
 
     chameleon_backend::app().await;
 }

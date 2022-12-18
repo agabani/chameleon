@@ -6,7 +6,13 @@ Install dependencies:
 
 ```terminal
 rustup target add wasm32-unknown-unknown
-cargo install --locked trunk
+cargo install --locked sqlx-cli trunk
+```
+
+Provision database:
+
+```terminal
+sqlx database create
 ```
 
 Run backend:

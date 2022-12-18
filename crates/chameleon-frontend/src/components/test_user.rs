@@ -68,7 +68,12 @@ impl Component for TestUser {
                     <button
                         disabled={self.communicating}
                         type="submit">
-                        { if self.communicating { "Updating" } else { "Update" } }
+                        { match (&self.user, self.communicating) {
+                            (Some(_), true) => "Updating",
+                            (Some(_), false) => "Update",
+                            (None, true) => "Registering",
+                            (None, false) => "Register",
+                        } }
                     </button>
                 </form>
             </div>
@@ -88,6 +93,7 @@ impl Component for TestUser {
             }
             Msg::SubmitClicked => {
                 self.communicating = true;
+                let registered = self.user.is_some();
                 let value = self
                     .input
                     .cast::<HtmlInputElement>()
@@ -97,11 +103,19 @@ impl Component for TestUser {
                 let service = Service::from_context(ctx);
 
                 ctx.link().send_future(async move {
-                    service
-                        .api
-                        .put_user(&http::UserRequest { name: value })
-                        .await
-                        .expect("Failed to update user");
+                    if registered {
+                        service
+                            .api
+                            .put_user(&http::UserRequest { name: value })
+                            .await
+                            .expect("Failed to update user");
+                    } else {
+                        service
+                            .api
+                            .signup(&http::UserRequest { name: value })
+                            .await
+                            .expect("Failed to update user");
+                    }
 
                     let user = service
                         .api

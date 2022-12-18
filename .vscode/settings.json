@@ -1,3 +1,11 @@
 {
-  "cSpell.words": ["bindgen", "gloo", "onclick", "onsubmit", "rustup", "serde"]
+  "cSpell.words": [
+    "bindgen",
+    "gloo",
+    "onclick",
+    "onsubmit",
+    "rustup",
+    "serde",
+    "sqlx"
+  ]
 }

@@ -48,7 +48,7 @@ impl ApiService {
                 let user = response.json().await?;
                 Ok(Some(user))
             }
-            404 => Ok(None),
+            401 => Ok(None),
             status => todo!("Unexpected status code: {status}"),
         }
     }
@@ -65,6 +65,19 @@ impl ApiService {
                 Ok(Some(user))
             }
             404 => Ok(None),
+            status => todo!("Unexpected status code: {status}"),
+        }
+    }
+
+    pub async fn signup(&self, user: &http::UserRequest) -> Result<(), Error> {
+        let response = Request::post("/api/v1/signup")
+            .authentication_headers()
+            .json(user)?
+            .send()
+            .await?;
+
+        match response.status() {
+            204 => Ok(()),
             status => todo!("Unexpected status code: {status}"),
         }
     }

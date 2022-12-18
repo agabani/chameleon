@@ -10,8 +10,9 @@ WORKDIR /home/appuser/app
 
 COPY . .
 
+RUN SQLX_OFFLINE=true && \
+    cargo build --target x86_64-unknown-linux-musl --release
 RUN trunk build
-RUN cargo build --target x86_64-unknown-linux-musl --release
 
 FROM scratch AS rootfs
 
@@ -23,5 +24,7 @@ FROM scratch
 USER 10001:10001
 
 COPY --chown=0:0 --from=rootfs . .
+
+ENV CHAMELEON_LOG="info,sqlx=warn"
 
 CMD [ "/chameleon-backend" ]

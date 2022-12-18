@@ -14,10 +14,7 @@ use futures::{
 };
 use tokio::time::sleep;
 
-use crate::{
-    domain::{LocalId, SessionId},
-    AppState,
-};
+use crate::{database::Database, domain::LocalId, AppState};
 
 #[allow(clippy::unused_async)]
 #[tracing::instrument(skip(state, ws))]
@@ -33,13 +30,11 @@ pub async fn get(
 async fn ws_v1_handler(websocket: WebSocket, state: AppState) {
     let (mut sink, mut stream) = websocket.split();
 
-    let connection = state
-        .redis_client
-        .get_async_connection()
+    let mut listener = Database::listener(&state.postgres_pool)
         .await
-        .expect("Failed to get connection");
+        .expect("Failed to get listener");
 
-    let (local_id, session_id) = match authenticate(&mut stream, &mut sink).await {
+    let local_id = match authenticate(&mut stream, &mut sink).await {
         Ok(Some(result)) => result,
         Ok(None) => {
             tracing::warn!("stream disconnected");
@@ -53,29 +48,29 @@ async fn ws_v1_handler(websocket: WebSocket, state: AppState) {
 
     tracing::info!(
         local_id =? local_id,
-        session_id =? session_id,
     "client authenticated");
 
     tokio::spawn(async move {
         let period = Duration::from_secs(1);
 
-        let mut pubsub = connection.into_pubsub();
-        pubsub
-            .subscribe("testing")
+        listener
+            .listen("testing")
             .await
             .expect("Failed to subscribe");
 
-        let mut pubsub_stream = pubsub.on_message();
+        let mut notify_stream = listener.into_stream();
 
         loop {
             tokio::select! {
-                msg = pubsub_stream.next() => {
+                msg = notify_stream.next() => {
                     let Some(msg) = msg else {
                         tracing::info!("stream disconnected");
                         return;
                     };
 
-                    let payload: String = msg.get_payload().expect("Failed to get payload");
+                    let msg = msg.expect("");
+
+                    let payload: String = msg.payload().to_string();
                     tracing::info!(payload, "sending payload");
 
                     if let Err(err) = sink.send(axum::extract::ws::Message::Text(payload)).await {
@@ -116,7 +111,7 @@ async fn ws_v1_handler(websocket: WebSocket, state: AppState) {
 async fn authenticate(
     stream: &mut SplitStream<WebSocket>,
     sink: &mut SplitSink<WebSocket, Message>,
-) -> Result<Option<(LocalId, SessionId)>, axum::Error> {
+) -> Result<Option<LocalId>, axum::Error> {
     while let Some(msg) = stream.next().await {
         let msg = msg?;
 
@@ -124,13 +119,12 @@ async fn authenticate(
             axum::extract::ws::Message::Text(json) => match serde_json::from_str(&json).unwrap() {
                 ws::Request::Authenticate(request) => {
                     let local_id = LocalId::from_str(&request.local_id).unwrap();
-                    let session_id = SessionId::from_str(&request.session_id).unwrap();
 
                     sink.send(Message::Text(ws::Response::Authenticated.to_string()))
                         .await
                         .unwrap();
 
-                    return Ok(Some((local_id, session_id)));
+                    return Ok(Some(local_id));
                 }
             },
             axum::extract::ws::Message::Binary(_)

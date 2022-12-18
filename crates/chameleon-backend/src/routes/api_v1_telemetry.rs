@@ -1,7 +1,5 @@
-use std::net::SocketAddr;
-
 use axum::{
-    extract::{ConnectInfo, Query},
+    extract::Query,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -11,13 +9,12 @@ use serde::Deserialize;
 use serde_json::Value;
 use tracing::{debug, error, info, instrument, trace, warn};
 
-use crate::{domain::AuthenticationId, error::ApiError};
+use crate::{domain::LocalId, error::ApiError};
 
 #[allow(clippy::unused_async)] // reason = "required by `axum::Router`"
 #[instrument]
 pub async fn post(
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    authentication_id: AuthenticationId,
+    local_id: LocalId,
     query: Query<PostQuery>,
     json: Json<Value>,
 ) -> Result<Response, ApiError> {

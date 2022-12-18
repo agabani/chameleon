@@ -1,0 +1,90 @@
+{
+  "db": "PostgreSQL",
+  "41e9ec151b74665617b48ea10f0c3b81ade6e8e02c6c9fe9f5e2712dad2a9cac": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT name\n            FROM \"user\"\n            WHERE public_id = $1"
+  },
+  "5e42672f62afb0c20eaec5dcedead72adc6e280eabbaf3bd77284700bb7ba7d3": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "INSERT INTO local (public_id, user_id)\n            VALUES ($2,\n                    (SELECT u.id FROM \"user\" u WHERE u.public_id = $1))\n            ON CONFLICT DO NOTHING;"
+  },
+  "6e0c25138ce620dfe50fa453b0cc35711728966a03af4674446d26818b14b63a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"user\" (public_id, name)\n            VALUES ($1, $2)\n            ON CONFLICT (public_id) DO UPDATE\n                SET name = $2;"
+  },
+  "b87ae809e7e17ffc7a6b5b10af77810b2312b4ccfbc60b64a0bc5c0fa160f1b2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "public_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT u.public_id\n            FROM \"user\" AS u\n                     JOIN local AS l ON u.id = l.user_id\n            WHERE l.public_id = $1;"
+  },
+  "f7599bbef8c317c1ab1a61b2bcba3c5b03855b8a536bcdf369332c567b29d92c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "pg_notify",
+          "ordinal": 0,
+          "type_info": "Void"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT pg_notify($1, $2)"
+  }
+}

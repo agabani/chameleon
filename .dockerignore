@@ -5,3 +5,4 @@
 !/Cargo.lock
 !/Cargo.toml
 !/Trunk.toml
+!sqlx-data.json

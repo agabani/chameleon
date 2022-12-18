@@ -1,13 +1,7 @@
-use std::net::SocketAddr;
-
-use crate::{
-    domain::{AuthenticationId, Database},
-    error::ApiError,
-    AppState,
-};
+use crate::{database::Database, domain::UserId, error::ApiError, AppState};
 
 use axum::{
-    extract::{ConnectInfo, State},
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -16,12 +10,11 @@ use chameleon_protocol::{http, ws};
 
 #[tracing::instrument(skip(state))]
 pub async fn post(
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    State(mut state): State<AppState>,
-    authentication_id: AuthenticationId,
+    State(state): State<AppState>,
+    user_id: UserId,
     Json(body): Json<http::MessageRequest>,
 ) -> Result<Response, ApiError> {
-    let user = Database::get_user(authentication_id.user_id(), &mut state.redis_connection)
+    let user = Database::get_user_by_id(user_id, &state.postgres_pool)
         .await?
         .expect("Failed to get user by id");
 
@@ -31,7 +24,7 @@ pub async fn post(
         content: body.content,
     });
 
-    Database::publish_message(message, &mut state.redis_connection).await?;
+    Database::notify(&state.postgres_pool, "testing", &message).await?;
 
     Ok(StatusCode::OK.into_response())
 }

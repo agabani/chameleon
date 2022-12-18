@@ -2,9 +2,13 @@ services:
   chameleon:
     build: .
     environment:
-      CHAMELEON_REDIS_URL: redis://redis:6379
+      CHAMELEON_POSTGRES_URL: postgres://postgres:password@postgres:5432/chameleon
     ports:
       - 3000:3000
     restart: unless-stopped
-  redis:
-    image: redis:latest
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: chameleon
+      POSTGRES_PASSWORD: password
+
