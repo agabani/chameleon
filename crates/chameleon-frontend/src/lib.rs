@@ -1,17 +1,41 @@
 #![deny(clippy::pedantic)]
 
 mod components;
+mod pages;
 mod services;
 
 use std::rc::Rc;
 
-use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
+use yew_router::prelude::*;
 
 use crate::{
-    components::{test_chat::TestChat, test_user::TestUser, topic_card::TopicCard},
+    pages::{home::Home, lobby::Lobby, not_found::NotFound, test::Test},
     services::Service,
 };
+
+#[derive(Clone, PartialEq, Eq, Routable)]
+enum Route {
+    #[at("/")]
+    Home,
+    #[at("/lobby")]
+    Lobby,
+    #[at("/test")]
+    Test,
+    #[not_found]
+    #[at("/404")]
+    NotFound,
+}
+
+#[allow(clippy::needless_pass_by_value)] // reason = "required by `yew_router::switch::Switch`"
+fn switch(route: Route) -> Html {
+    match route {
+        Route::Home => html! {<Home />},
+        Route::Lobby => html! {<Lobby />},
+        Route::NotFound => html! {<NotFound />},
+        Route::Test => html! {<Test />},
+    }
+}
 
 #[function_component]
 pub fn App() -> Html {
@@ -19,66 +43,9 @@ pub fn App() -> Html {
 
     html! {
         <ContextProvider<Rc<Service>> context={service}>
-            <Ui />
+            <BrowserRouter>
+                <Switch<Route> render={switch} />
+            </BrowserRouter>
         </ContextProvider<Rc<Service>>>
-    }
-}
-
-pub struct Ui {}
-
-impl Component for Ui {
-    type Message = ();
-
-    type Properties = ();
-
-    fn create(ctx: &Context<Self>) -> Self {
-        let service = Service::from_context(ctx);
-
-        spawn_local(async move {
-            service
-                .api
-                .post_telemetry(
-                    &serde_json::json!({
-                        "event": "ui created"
-                    }),
-                    chameleon_protocol::http::TelemetryLevel::Info,
-                )
-                .await;
-        });
-
-        Self {}
-    }
-
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        let name = "Sports".to_string();
-        let secret_words = vec![
-            "Football",
-            "Basketball",
-            "Tennis",
-            "Lacrosse",
-            "Soccer",
-            "Ice Hockey",
-            "Badminton",
-            "Volleyball",
-            "Golf",
-            "Sailing",
-            "Motor Racing",
-            "Triathlon",
-            "Baseball",
-            "Squash",
-            "Wrestling",
-            "Cycling",
-        ]
-        .into_iter()
-        .map(AttrValue::from)
-        .collect::<Vec<_>>();
-
-        html! {
-            <>
-                <TopicCard {name} {secret_words} />
-                <TestUser />
-                <TestChat />
-            </>
-        }
     }
 }

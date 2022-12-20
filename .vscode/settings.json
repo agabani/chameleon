@@ -4,6 +4,7 @@
     "gloo",
     "onclick",
     "onsubmit",
+    "routable",
     "rustup",
     "serde",
     "sqlx"
