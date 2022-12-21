@@ -12,7 +12,7 @@ COPY . .
 
 RUN SQLX_OFFLINE=true && \
     cargo build --target x86_64-unknown-linux-musl --release
-RUN trunk build
+RUN trunk build --dist dist --public-url /assets/ --release ./crates/chameleon-frontend/index.html
 
 FROM scratch AS rootfs
 

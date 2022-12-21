@@ -37,7 +37,7 @@ pub async fn app() {
     let state = AppState { postgres_pool };
 
     let app = Router::new()
-        .merge(SpaRouter::new("/", "dist"))
+        .merge(SpaRouter::new("/assets", "dist"))
         .route("/api/v1/message", post(api_v1_message::post))
         .route("/api/v1/ping", get(api_v1_ping::get))
         .route("/api/v1/signup", post(api_v1_signup::post))
