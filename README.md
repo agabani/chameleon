@@ -12,7 +12,7 @@ cargo install --locked sqlx-cli trunk
 Provision database:
 
 ```terminal
-sqlx database create
+sqlx database setup --source .\crates\chameleon-backend\migrations\
 ```
 
 Run backend:

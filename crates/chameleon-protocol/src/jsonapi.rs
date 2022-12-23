@@ -15,9 +15,6 @@ pub struct Document<T> {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Errors(pub Vec<Error>);
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Error {
     #[serde(rename = "status")]
     pub status: u16,
@@ -33,6 +30,9 @@ pub struct Error {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Errors(pub Vec<Error>);
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Links(pub HashMap<String, String>);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -45,13 +45,6 @@ pub struct Pagination {
 
     #[serde(rename = "page[size]")]
     pub size: Option<String>,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum Resources<T> {
-    Collection(Vec<Resource<T>>),
-    Individual(Resource<T>),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -73,13 +66,6 @@ pub struct Resource<T> {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum ResourceIdentifiers {
-    Collection(Vec<ResourceIdentifier>),
-    Individual(ResourceIdentifier),
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ResourceIdentifier {
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -89,7 +75,18 @@ pub struct ResourceIdentifier {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Relationships(pub HashMap<String, Relationship>);
+#[serde(untagged)]
+pub enum ResourceIdentifiers {
+    Collection(Vec<ResourceIdentifier>),
+    Individual(ResourceIdentifier),
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Resources<T> {
+    Collection(Vec<Resource<T>>),
+    Individual(Resource<T>),
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Relationship {
@@ -99,6 +96,9 @@ pub struct Relationship {
     #[serde(rename = "links", skip_serializing_if = "Option::is_none")]
     pub links: Option<Links>,
 }
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Relationships(pub HashMap<String, Relationship>);
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub struct Source {
@@ -171,5 +171,25 @@ impl<T> Resource<T> {
             title: "Invalid Field".to_string().into(),
             detail: format!("{display} must be present").into(),
         })
+    }
+}
+
+impl<T> Resources<T> {
+    #[allow(clippy::result_large_err)]
+    pub fn try_get_individual(&self) -> Result<&Resource<T>, Error> {
+        match self {
+            Resources::Collection(_) => Err(Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: "/data".to_string().into(),
+                }
+                .into(),
+                title: "Invalid Member".to_string().into(),
+                detail: "Data must be a resource object".to_string().into(),
+            }),
+            Resources::Individual(resource) => Ok(resource),
+        }
     }
 }

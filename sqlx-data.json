@@ -1,5 +1,18 @@
 {
   "db": "PostgreSQL",
+  "002badb36e3f460268acda405ecf5356b3a652aac706b53d5c6a3dd954958ca8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO \"user\" (public_id, name)\n            VALUES ($1, $2);"
+  },
   "1993eb793d80776c429b3aceff81bcda11d2a61ebc0e318cf51376e38ef0d1f0": {
     "describe": {
       "columns": [],
@@ -13,26 +26,6 @@
       }
     },
     "query": "INSERT INTO game_player (game_id, user_id, host)\n            VALUES ((SELECT id FROM game WHERE public_id = $1),\n                    (SELECT id FROM \"user\" WHERE public_id = $2),\n                    $3);"
-  },
-  "41e9ec151b74665617b48ea10f0c3b81ade6e8e02c6c9fe9f5e2712dad2a9cac": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SELECT name\n            FROM \"user\"\n            WHERE public_id = $1"
   },
   "4f28a11e3267ddedb4a7ad30b979c1f6b25067f72161dd33586e99e6cc82b935": {
     "describe": {
@@ -99,31 +92,31 @@
     },
     "query": "INSERT INTO game (public_id, name)\n            VALUES ($1, $2)\n            ON CONFLICT (public_id) DO UPDATE\n                SET name = $2;"
   },
-  "5e42672f62afb0c20eaec5dcedead72adc6e280eabbaf3bd77284700bb7ba7d3": {
+  "9a253732f9059dcac0630f2c38df67a08bd3cf8c887074ba9a1c95f30c78a528": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "public_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
       "parameters": {
         "Left": [
-          "Uuid",
           "Uuid"
         ]
       }
     },
-    "query": "INSERT INTO local (public_id, user_id)\n            VALUES ($2,\n                    (SELECT u.id FROM \"user\" u WHERE u.public_id = $1))\n            ON CONFLICT DO NOTHING;"
-  },
-  "6e0c25138ce620dfe50fa453b0cc35711728966a03af4674446d26818b14b63a": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO \"user\" (public_id, name)\n            VALUES ($1, $2)\n            ON CONFLICT (public_id) DO UPDATE\n                SET name = $2;"
+    "query": "SELECT u.public_id, u.name\n            FROM \"user\" u\n            WHERE u.public_id = $1;"
   },
   "af420b56dccee77b4ec27b0a0ad004aa9d3901fff29e6bae9be7dfd704784724": {
     "describe": {
@@ -157,7 +150,33 @@
     },
     "query": "SELECT g.public_id, g.name, u.public_id host_public_id\n            FROM game g\n                     JOIN game_player gp ON g.id = gp.game_id\n                     JOIN \"user\" u ON u.id = gp.user_id\n            WHERE g.public_id = $1\n              AND gp.host IS TRUE;"
   },
-  "b87ae809e7e17ffc7a6b5b10af77810b2312b4ccfbc60b64a0bc5c0fa160f1b2": {
+  "b412316687311811df9341aac98a3785d0a6dd8d210d19cba5cbc96c638d0b09": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE \"user\"\n            SET name = $2\n            WHERE public_id = $1"
+  },
+  "d5e1efd826a6d44a22c1f9d755c7de604cc80ba57a3fbd01dffdc26b2c2a8251": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "INSERT INTO local (public_id, user_id)\n            VALUES ($1,\n                    (SELECT id FROM \"user\" WHERE \"user\".public_id = $2));"
+  },
+  "dabc471a760fcd9bc5dd348cc87bea7ab957173cd25a170d8eb2edc40ce8d04b": {
     "describe": {
       "columns": [
         {
@@ -175,7 +194,7 @@
         ]
       }
     },
-    "query": "SELECT u.public_id\n            FROM \"user\" AS u\n                     JOIN local AS l ON u.id = l.user_id\n            WHERE l.public_id = $1;"
+    "query": "SELECT u.public_id\n            FROM \"user\" u\n                     JOIN local l ON u.id = l.user_id\n            WHERE l.public_id = $1;"
   },
   "f7599bbef8c317c1ab1a61b2bcba3c5b03855b8a536bcdf369332c567b29d92c": {
     "describe": {

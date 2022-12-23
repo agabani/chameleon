@@ -1,21 +1,15 @@
-use super::UserId;
+#[allow(clippy::module_name_repetitions)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct UserId(pub uuid::Uuid);
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct User {
-    id: UserId,
-    name: String,
+    pub id: UserId,
+    pub name: String,
 }
 
-impl User {
-    pub fn new(id: UserId, name: String) -> Self {
-        Self { id, name }
-    }
-
-    pub fn id(&self) -> UserId {
-        self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
+impl UserId {
+    pub fn random() -> Self {
+        Self(uuid::Uuid::new_v4())
     }
 }

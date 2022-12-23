@@ -9,76 +9,8 @@ use crate::domain::{Game, GameId, LocalId, User, UserId};
 pub struct Database {}
 
 impl Database {
-    pub async fn get_user_id_by_local_id<'c, E>(
-        local_id: LocalId,
-        conn: E,
-    ) -> Result<Option<UserId>, sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"SELECT u.public_id
-            FROM "user" AS u
-                     JOIN local AS l ON u.id = l.user_id
-            WHERE l.public_id = $1;"#,
-            local_id.value(),
-        )
-        .map(|record| UserId::new(record.public_id))
-        .fetch_optional(conn)
-        .await
-    }
-
-    pub async fn save_local_id<'c, E>(
-        user_id: UserId,
-        local_id: LocalId,
-        conn: E,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"INSERT INTO local (public_id, user_id)
-            VALUES ($2,
-                    (SELECT u.id FROM "user" u WHERE u.public_id = $1))
-            ON CONFLICT DO NOTHING;"#,
-            user_id.value(),
-            local_id.value(),
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
-    }
-
-    pub async fn get_user_by_id<'c, E>(id: UserId, conn: E) -> Result<Option<User>, sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"SELECT name
-            FROM "user"
-            WHERE public_id = $1"#,
-            id.value()
-        )
-        .fetch_optional(conn)
-        .await
-        .map(|record| record.map(|record| User::new(id, record.name)))
-    }
-
-    pub async fn save_user<'c, E>(user: &User, conn: E) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"INSERT INTO "user" (public_id, name)
-            VALUES ($1, $2)
-            ON CONFLICT (public_id) DO UPDATE
-                SET name = $2;"#,
-            user.id().value(),
-            user.name()
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
+    pub async fn listener(conn: &Pool<Postgres>) -> Result<PgListener, sqlx::Error> {
+        PgListener::connect_with(conn).await
     }
 
     pub async fn notify<'c, E>(
@@ -93,10 +25,6 @@ impl Database {
             .execute(conn)
             .await
             .map(|_| ())
-    }
-
-    pub async fn listener(conn: &Pool<Postgres>) -> Result<PgListener, sqlx::Error> {
-        PgListener::connect_with(conn).await
     }
 
     pub async fn insert_game<'c, E>(conn: E, game: &Game) -> Result<(), sqlx::Error>
@@ -116,28 +44,57 @@ impl Database {
         .map(|_| ())
     }
 
-    pub async fn select_game<'c, E>(conn: E, game_id: GameId) -> Result<Option<Game>, sqlx::Error>
+    pub async fn insert_game_player<'c, E>(conn: E, game: &Game) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
         sqlx::query!(
-            r#"SELECT g.public_id, g.name, u.public_id host_public_id
-            FROM game g
-                     JOIN game_player gp ON g.id = gp.game_id
-                     JOIN "user" u ON u.id = gp.user_id
-            WHERE g.public_id = $1
-              AND gp.host IS TRUE;"#,
-            game_id.0
+            r#"INSERT INTO game_player (game_id, user_id, host)
+            VALUES ((SELECT id FROM game WHERE public_id = $1),
+                    (SELECT id FROM "user" WHERE public_id = $2),
+                    $3);"#,
+            game.id.0,
+            game.host.0,
+            true
         )
-        .fetch_optional(conn)
+        .execute(conn)
         .await
-        .map(|record| {
-            record.map(|record| Game {
-                id: GameId(record.public_id),
-                name: record.name,
-                host: UserId::new(record.host_public_id),
-            })
-        })
+        .map(|_| ())
+    }
+
+    pub async fn insert_local<'c, E>(
+        conn: E,
+        local_id: LocalId,
+        user_id: UserId,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"INSERT INTO local (public_id, user_id)
+            VALUES ($1,
+                    (SELECT id FROM "user" WHERE "user".public_id = $2));"#,
+            local_id.0,
+            user_id.0
+        )
+        .execute(conn)
+        .await
+        .map(|_| ())
+    }
+
+    pub async fn insert_user<'c, E>(conn: E, user: &User) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"INSERT INTO "user" (public_id, name)
+            VALUES ($1, $2);"#,
+            user.id.0,
+            user.name,
+        )
+        .execute(conn)
+        .await
+        .map(|_| ())
     }
 
     pub async fn query_game<'c, E>(
@@ -171,11 +128,74 @@ impl Database {
             .map(|record| Game {
                 id: GameId(record.public_id),
                 name: record.name,
-                host: UserId::new(record.host_public_id),
+                host: UserId(record.host_public_id),
             })
             .collect();
 
         Ok((games, last_record_id))
+    }
+
+    pub async fn select_game<'c, E>(conn: E, game_id: GameId) -> Result<Option<Game>, sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"SELECT g.public_id, g.name, u.public_id host_public_id
+            FROM game g
+                     JOIN game_player gp ON g.id = gp.game_id
+                     JOIN "user" u ON u.id = gp.user_id
+            WHERE g.public_id = $1
+              AND gp.host IS TRUE;"#,
+            game_id.0
+        )
+        .fetch_optional(conn)
+        .await
+        .map(|record| {
+            record.map(|record| Game {
+                id: GameId(record.public_id),
+                name: record.name,
+                host: UserId(record.host_public_id),
+            })
+        })
+    }
+
+    pub async fn select_user<'c, E>(conn: E, user_id: UserId) -> Result<Option<User>, sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"SELECT u.public_id, u.name
+            FROM "user" u
+            WHERE u.public_id = $1;"#,
+            user_id.0
+        )
+        .fetch_optional(conn)
+        .await
+        .map(|record| {
+            record.map(|record| User {
+                id: UserId(record.public_id),
+                name: record.name,
+            })
+        })
+    }
+
+    pub async fn select_user_id_by_local_id<'c, E>(
+        conn: E,
+        local_id: LocalId,
+    ) -> Result<Option<UserId>, sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"SELECT u.public_id
+            FROM "user" u
+                     JOIN local l ON u.id = l.user_id
+            WHERE l.public_id = $1;"#,
+            local_id.value(),
+        )
+        .map(|record| UserId(record.public_id))
+        .fetch_optional(conn)
+        .await
     }
 
     pub async fn update_game<'c, E>(conn: E, game: &Game) -> Result<(), sqlx::Error>
@@ -194,18 +214,16 @@ impl Database {
         .map(|_| ())
     }
 
-    pub async fn insert_game_player<'c, E>(conn: E, game: &Game) -> Result<(), sqlx::Error>
+    pub async fn update_user<'c, E>(conn: E, user: &User) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
         sqlx::query!(
-            r#"INSERT INTO game_player (game_id, user_id, host)
-            VALUES ((SELECT id FROM game WHERE public_id = $1),
-                    (SELECT id FROM "user" WHERE public_id = $2),
-                    $3);"#,
-            game.id.0,
-            game.host.0,
-            true
+            r#"UPDATE "user"
+            SET name = $2
+            WHERE public_id = $1"#,
+            user.id.0,
+            user.name,
         )
         .execute(conn)
         .await

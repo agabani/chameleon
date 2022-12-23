@@ -6,21 +6,6 @@ pub struct MessageRequest {
     pub content: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct UserResponse {
-    #[serde(rename = "id")]
-    pub id: String,
-
-    #[serde(rename = "name")]
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct UserRequest {
-    #[serde(rename = "name")]
-    pub name: String,
-}
-
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub enum TelemetryLevel {
     #[serde(rename = "trace")]

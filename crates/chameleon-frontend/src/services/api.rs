@@ -1,4 +1,4 @@
-use chameleon_protocol::http;
+use chameleon_protocol::{attributes::UserAttributes, http, jsonapi::Document, openid_connect};
 use gloo::{
     console,
     net::{http::Request, Error},
@@ -37,60 +37,51 @@ impl ApiService {
         }
     }
 
-    pub async fn get_user(&self) -> Result<Option<http::UserResponse>, Error> {
-        let response = Request::get("/api/v1/user")
+    pub async fn create_user(
+        &self,
+        document: &Document<UserAttributes>,
+    ) -> Result<Document<UserAttributes>, Error> {
+        Request::post("/api/v1/users")
+            .authentication_headers()
+            .json(document)?
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
+    pub async fn get_user(&self, id: &str) -> Result<Document<UserAttributes>, Error> {
+        Request::get(&format!("/api/v1/users/{id}"))
+            .authentication_headers()
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
+    pub async fn update_user(
+        &self,
+        id: &str,
+        document: &Document<UserAttributes>,
+    ) -> Result<Document<UserAttributes>, Error> {
+        Request::patch(&format!("/api/v1/users/{id}"))
+            .authentication_headers()
+            .json(document)?
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
+    pub async fn get_userinfo(&self) -> Result<Option<openid_connect::UserInfo>, Error> {
+        let response = Request::get("/api/v1/userinfo")
             .authentication_headers()
             .send()
             .await?;
 
         match response.status() {
-            200 => {
-                let user = response.json().await?;
-                Ok(Some(user))
-            }
+            200 => Ok(Some(response.json().await?)),
             401 => Ok(None),
-            status => todo!("Unexpected status code: {status}"),
-        }
-    }
-
-    pub async fn get_user_by_id(&self, user_id: &str) -> Result<Option<http::UserResponse>, Error> {
-        let response = Request::get(&format!("/api/v1/users/{user_id}"))
-            .authentication_headers()
-            .send()
-            .await?;
-
-        match response.status() {
-            200 => {
-                let user = response.json().await?;
-                Ok(Some(user))
-            }
-            404 => Ok(None),
-            status => todo!("Unexpected status code: {status}"),
-        }
-    }
-
-    pub async fn signup(&self, user: &http::UserRequest) -> Result<(), Error> {
-        let response = Request::post("/api/v1/signup")
-            .authentication_headers()
-            .json(user)?
-            .send()
-            .await?;
-
-        match response.status() {
-            204 => Ok(()),
-            status => todo!("Unexpected status code: {status}"),
-        }
-    }
-
-    pub async fn put_user(&self, user: &http::UserRequest) -> Result<(), Error> {
-        let response = Request::put("/api/v1/user")
-            .authentication_headers()
-            .json(user)?
-            .send()
-            .await?;
-
-        match response.status() {
-            204 => Ok(()),
             status => todo!("Unexpected status code: {status}"),
         }
     }

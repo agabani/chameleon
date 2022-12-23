@@ -25,7 +25,7 @@ impl FromRequestParts<AppState> for UserId {
         Box::pin(async move {
             let local_id = LocalId::from_request_parts(parts, state).await?;
 
-            Database::get_user_id_by_local_id(local_id, &state.postgres_pool)
+            Database::select_user_id_by_local_id(&state.postgres_pool, local_id)
                 .await?
                 .ok_or_else(|| {
                     ApiError::JsonApi(jsonapi::Error {
