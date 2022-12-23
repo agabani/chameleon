@@ -1,3 +1,4 @@
+pub mod api_v1_games;
 pub mod api_v1_message;
 pub mod api_v1_ping;
 pub mod api_v1_signup;

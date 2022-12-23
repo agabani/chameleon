@@ -16,7 +16,8 @@ use axum::{
 };
 use axum_extra::routing::SpaRouter;
 use routes::{
-    api_v1_message, api_v1_ping, api_v1_signup, api_v1_telemetry, api_v1_user, api_v1_users, ws_v1,
+    api_v1_games, api_v1_message, api_v1_ping, api_v1_signup, api_v1_telemetry, api_v1_user,
+    api_v1_users, ws_v1,
 };
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -38,6 +39,7 @@ pub async fn app() {
 
     let app = Router::new()
         .merge(SpaRouter::new("/assets", "dist"))
+        .nest(api_v1_games::PATH, api_v1_games::router())
         .route("/api/v1/message", post(api_v1_message::post))
         .route("/api/v1/ping", get(api_v1_ping::get))
         .route("/api/v1/signup", post(api_v1_signup::post))

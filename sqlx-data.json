@@ -1,5 +1,19 @@
 {
   "db": "PostgreSQL",
+  "1993eb793d80776c429b3aceff81bcda11d2a61ebc0e318cf51376e38ef0d1f0": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Bool"
+        ]
+      }
+    },
+    "query": "INSERT INTO game_player (game_id, user_id, host)\n            VALUES ((SELECT id FROM game WHERE public_id = $1),\n                    (SELECT id FROM \"user\" WHERE public_id = $2),\n                    $3);"
+  },
   "41e9ec151b74665617b48ea10f0c3b81ade6e8e02c6c9fe9f5e2712dad2a9cac": {
     "describe": {
       "columns": [
@@ -19,6 +33,71 @@
       }
     },
     "query": "SELECT name\n            FROM \"user\"\n            WHERE public_id = $1"
+  },
+  "4f28a11e3267ddedb4a7ad30b979c1f6b25067f72161dd33586e99e6cc82b935": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "public_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "host_public_id",
+          "ordinal": 3,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT g.id, g.public_id, g.name, u.public_id host_public_id\n            FROM game g\n                     JOIN game_player gp ON g.id = gp.game_id\n                     JOIN \"user\" u ON u.id = gp.user_id\n            WHERE g.id > $1\n              AND gp.host IS TRUE\n            ORDER BY g.id\n            LIMIT $2;"
+  },
+  "4f3928753865ac9a1921b558536fd084e5ab4a519dbac98b0b4d92de27872480": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE game\n            SET name = $2\n            WHERE public_id = $1"
+  },
+  "5d07a4376189e5da76a2e465d4a253cf1d02c9b6bd72ddd0092f41036c596efb": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO game (public_id, name)\n            VALUES ($1, $2)\n            ON CONFLICT (public_id) DO UPDATE\n                SET name = $2;"
   },
   "5e42672f62afb0c20eaec5dcedead72adc6e280eabbaf3bd77284700bb7ba7d3": {
     "describe": {
@@ -45,6 +124,38 @@
       }
     },
     "query": "INSERT INTO \"user\" (public_id, name)\n            VALUES ($1, $2)\n            ON CONFLICT (public_id) DO UPDATE\n                SET name = $2;"
+  },
+  "af420b56dccee77b4ec27b0a0ad004aa9d3901fff29e6bae9be7dfd704784724": {
+    "describe": {
+      "columns": [
+        {
+          "name": "public_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "host_public_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT g.public_id, g.name, u.public_id host_public_id\n            FROM game g\n                     JOIN game_player gp ON g.id = gp.game_id\n                     JOIN \"user\" u ON u.id = gp.user_id\n            WHERE g.public_id = $1\n              AND gp.host IS TRUE;"
   },
   "b87ae809e7e17ffc7a6b5b10af77810b2312b4ccfbc60b64a0bc5c0fa160f1b2": {
     "describe": {

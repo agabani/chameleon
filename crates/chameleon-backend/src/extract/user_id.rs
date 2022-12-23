@@ -1,18 +1,17 @@
 use core::{future::Future, marker::Send, pin::Pin};
 
-use axum::{
-    extract::FromRequestParts,
-    http::{request::Parts, StatusCode},
-};
+use axum::{extract::FromRequestParts, http::request::Parts};
+use chameleon_protocol::jsonapi::{self, Source};
 
 use crate::{
     database::Database,
     domain::{LocalId, UserId},
+    error::ApiError,
     AppState,
 };
 
 impl FromRequestParts<AppState> for UserId {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = ApiError;
 
     fn from_request_parts<'life0, 'life1, 'async_trait>(
         parts: &'life0 mut Parts,
@@ -27,17 +26,22 @@ impl FromRequestParts<AppState> for UserId {
             let local_id = LocalId::from_request_parts(parts, state).await?;
 
             Database::get_user_id_by_local_id(local_id, &state.postgres_pool)
-                .await
-                .map_err(|_| {
-                    (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "An unexpected error has occurred",
-                    )
-                })?
-                .ok_or((
-                    StatusCode::UNAUTHORIZED,
-                    "Header of type `x-chameleon-local-id` does not have a user",
-                ))
+                .await?
+                .ok_or_else(|| {
+                    ApiError::JsonApi(jsonapi::Error {
+                        status: 401,
+                        source: Source {
+                            header: "x-chameleon-local-id".to_string().into(),
+                            parameter: None,
+                            pointer: None,
+                        }
+                        .into(),
+                        title: "Invalid Header".to_string().into(),
+                        detail: "`x-chameleon-local-id` does not have a user"
+                            .to_string()
+                            .into(),
+                    })
+                })
         })
     }
 }

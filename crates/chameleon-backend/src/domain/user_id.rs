@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
-pub struct UserId(Uuid);
+pub struct UserId(pub Uuid);
 
 impl UserId {
     pub fn new(uuid: Uuid) -> Self {
