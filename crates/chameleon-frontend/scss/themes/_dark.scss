@@ -1,0 +1,8 @@
+$light: #b4bebd;
+
+.theme-dark {
+  &.app {
+    background-color: #000000;
+    color: $light;
+  }
+}

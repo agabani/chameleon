@@ -13,7 +13,7 @@ impl Component for NotFound {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <h1>{ "Not Found" }</h1>
+            <div>{ "Not Found" }</div>
         }
     }
 }

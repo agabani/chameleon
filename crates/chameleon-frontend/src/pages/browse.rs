@@ -1,8 +1,8 @@
 use yew::prelude::*;
 
-pub struct Home {}
+pub struct Browse {}
 
-impl Component for Home {
+impl Component for Browse {
     type Message = ();
 
     type Properties = ();
@@ -13,7 +13,7 @@ impl Component for Home {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <div>{ "Home" }</div>
+            <div>{ "Browse" }</div>
         }
     }
 }

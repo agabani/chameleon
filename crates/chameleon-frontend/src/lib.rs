@@ -6,6 +6,7 @@ mod services;
 
 use std::rc::Rc;
 
+use pages::{browse::Browse, host::Host};
 use yew::prelude::*;
 use yew_router::prelude::*;
 
@@ -18,6 +19,10 @@ use crate::{
 enum Route {
     #[at("/")]
     Home,
+    #[at("/browse")]
+    Browse,
+    #[at("/host")]
+    Host,
     #[at("/lobby")]
     Lobby,
     #[at("/test")]
@@ -28,9 +33,11 @@ enum Route {
 }
 
 #[allow(clippy::needless_pass_by_value)] // reason = "required by `yew_router::switch::Switch`"
-fn switch(route: Route) -> Html {
+fn render(route: Route) -> Html {
     match route {
         Route::Home => html! {<Home />},
+        Route::Browse => html! {<Browse />},
+        Route::Host => html! {<Host />},
         Route::Lobby => html! {<Lobby />},
         Route::NotFound => html! {<NotFound />},
         Route::Test => html! {<Test />},
@@ -44,7 +51,9 @@ pub fn App() -> Html {
     html! {
         <ContextProvider<Rc<Service>> context={service}>
             <BrowserRouter>
-                <Switch<Route> render={switch} />
+                <div class={classes!("app", "theme-dark")}>
+                    <Switch<Route> render={render} />
+                </div>
             </BrowserRouter>
         </ContextProvider<Rc<Service>>>
     }
