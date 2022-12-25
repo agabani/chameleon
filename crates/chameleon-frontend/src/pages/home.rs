@@ -1,5 +1,7 @@
 use yew::prelude::*;
 
+use crate::components::top_menu::{Item, TopMenu};
+
 pub struct Home {}
 
 impl Component for Home {
@@ -13,7 +15,7 @@ impl Component for Home {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <div>{ "Home" }</div>
+            <TopMenu active={Item::Home} />
         }
     }
 }

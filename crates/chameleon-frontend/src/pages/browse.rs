@@ -1,5 +1,7 @@
 use yew::prelude::*;
 
+use crate::components::top_menu::{Item, TopMenu};
+
 pub struct Browse {}
 
 impl Component for Browse {
@@ -13,7 +15,7 @@ impl Component for Browse {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <div>{ "Browse" }</div>
+            <TopMenu active={Item::Browse} />
         }
     }
 }

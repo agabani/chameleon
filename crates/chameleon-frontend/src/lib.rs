@@ -11,7 +11,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::{
-    pages::{home::Home, lobby::Lobby, not_found::NotFound, test::Test},
+    pages::{home::Home, not_found::NotFound, test::Test},
     services::Service,
 };
 
@@ -23,8 +23,6 @@ enum Route {
     Browse,
     #[at("/host")]
     Host,
-    #[at("/lobby")]
-    Lobby,
     #[at("/test")]
     Test,
     #[not_found]
@@ -38,7 +36,6 @@ fn render(route: Route) -> Html {
         Route::Home => html! {<Home />},
         Route::Browse => html! {<Browse />},
         Route::Host => html! {<Host />},
-        Route::Lobby => html! {<Lobby />},
         Route::NotFound => html! {<NotFound />},
         Route::Test => html! {<Test />},
     }

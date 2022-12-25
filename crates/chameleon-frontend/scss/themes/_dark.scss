@@ -1,8 +1,22 @@
+$dark: #1c2028;
+$highlight: #26ffdf;
 $light: #b4bebd;
 
 .theme-dark {
   &.app {
     background-color: #000000;
     color: $light;
+  }
+
+  .top-menu {
+    a {
+      background-color: $dark;
+      color: $light;
+    }
+
+    a.active {
+      background-color: $highlight;
+      color: $dark;
+    }
   }
 }

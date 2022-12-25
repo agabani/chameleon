@@ -1,0 +1,17 @@
+.top-menu {
+  display: flex;
+
+  gap: 1px;
+
+  a {
+    padding: 1em 3em;
+
+    font-family: "medium";
+
+    text-transform: uppercase;
+
+    // reset link styling
+    color: unset;
+    text-decoration: none;
+  }
+}
