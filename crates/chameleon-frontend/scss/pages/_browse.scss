@@ -1,0 +1,19 @@
+.browse {
+  display: grid;
+  grid-template-rows: 0fr auto;
+
+  height: 100vh;
+
+  .content {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+
+    padding: 2em;
+  }
+
+  .title {
+    font-family: "bold";
+    font-size: 48px;
+    text-transform: uppercase;
+  }
+}

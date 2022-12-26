@@ -19,17 +19,18 @@ impl Component for Browse {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <>
+            <div class="browse">
                 <TopMenu active={Item::Browse} />
-                <div class="browse">
+                <div class="content">
                     <div>
+                        <div class="title">{ "Browse Servers" }</div>
                         <ServerList />
                     </div>
                     <div>
                         <ServerDetails />
                     </div>
                 </div>
-            </>
+            </div>
         }
     }
 }

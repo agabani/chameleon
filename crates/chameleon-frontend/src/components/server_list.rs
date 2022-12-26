@@ -16,7 +16,6 @@ impl Component for ServerList {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div class="server-list">
-                <div class="title">{ "Browse Servers" }</div>
                 <div class="header">
                     <ServerListItem
                         name=""

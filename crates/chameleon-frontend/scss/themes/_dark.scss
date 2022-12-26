@@ -10,6 +10,16 @@ $scroll-foreground: #a4a7a7;
     color: $light;
   }
 
+  .browse {
+    .content {
+      background: radial-gradient(ellipse at bottom, #001113 0%, #001c1c 100%);
+    }
+
+    .title {
+      color: $highlight;
+    }
+  }
+
   .top-menu {
     a {
       background-color: $dark;
