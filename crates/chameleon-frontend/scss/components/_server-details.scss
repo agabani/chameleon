@@ -1,2 +1,47 @@
 .server-details {
+  padding: 2em;
+
+  &--title {
+    font-family: "bold";
+    font-size: 24px;
+
+    margin-bottom: 0.5em;
+  }
+
+  &--hosting {
+    display: flex;
+    gap: 0.5em;
+
+    margin-bottom: 0.5em;
+  }
+
+  &--actions {
+    display: flex;
+    gap: 2em;
+
+    margin-top: 2em;
+    margin-bottom: 2em;
+  }
+
+  &--action {
+    background-color: transparent;
+
+    padding: 0.5em 2em;
+
+    text-transform: uppercase;
+  }
+
+  &--modifiers {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  &--modifier {
+    padding: 0.5em;
+
+    text-align: center;
+    text-transform: uppercase;
+  }
 }

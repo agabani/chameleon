@@ -17,8 +17,15 @@
   .content {
     display: grid;
     grid-template-columns: 3fr 2fr;
+  }
 
+  &--list {
     padding: 2em;
+    height: 100%;
+  }
+
+  &--details {
+    height: 100%;
   }
 
   .smoke {
@@ -55,7 +62,7 @@
     }
   }
 
-  .title {
+  &--title {
     font-family: "bold";
     font-size: 48px;
     text-transform: uppercase;

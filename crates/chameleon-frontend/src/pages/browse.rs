@@ -25,12 +25,23 @@ impl Component for Browse {
                     <div class="smoke medium"></div>
                     <div class="smoke small"></div>
                     <div class="smoke large"></div>
-                    <div>
-                        <div class="title">{ "Browse Servers" }</div>
+                    <div class="browse--list">
+                        <div class="browse--title">{ "Browse Servers" }</div>
                         <ServerList />
                     </div>
-                    <div>
-                        <ServerDetails />
+                    <div class="browse--details">
+                        <ServerDetails
+                            name="Hardcore 2042"
+                            host="Ahn Bo Hyun"
+                            modifiers={vec![
+                                "Disappearing Hints".into(),
+                                "Unlimited Discussion".into(),
+                                "5 Rounds".into(),
+                                "Custom Topic Cards".into(),
+                                "Dice".into(),
+                                "Shuffled Secrets".into(),
+                                "Spectators".into(),
+                            ]} />
                     </div>
                 </div>
             </div>

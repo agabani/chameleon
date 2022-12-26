@@ -12,8 +12,12 @@ $scroll-foreground: #a4a7a7;
   }
 
   .browse {
-    .title {
+    &--title {
       color: $highlight;
+    }
+
+    &--details {
+      background-color: rgba($color: #002020, $alpha: 0.85);
     }
 
     .content {
@@ -54,6 +58,25 @@ $scroll-foreground: #a4a7a7;
     a.active {
       background-color: $highlight;
       color: $dark;
+    }
+  }
+
+  .server-details {
+    &--title {
+      color: $highlight;
+    }
+
+    &--host {
+      color: $highlight;
+    }
+
+    &--action {
+      border-color: $highlight;
+      color: $highlight;
+    }
+
+    &--modifier {
+      background-color: #00100f;
     }
   }
 
