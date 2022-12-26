@@ -1,3 +1,4 @@
+$background: #000000;
 $dark: #1c2028;
 $highlight: #26ffdf;
 $light: #b4bebd;
@@ -11,16 +12,40 @@ $scroll-foreground: #a4a7a7;
   }
 
   .browse {
-    .content {
-      background: radial-gradient(ellipse at bottom, #001113 0%, #001c1c 100%);
-    }
-
     .title {
       color: $highlight;
+    }
+
+    .content {
+      background: radial-gradient(ellipse at bottom, #001113 0%, #000402 100%);
+    }
+
+    .smoke {
+      @function multiple-box-shadow($n, $color) {
+        $value: "#{random(2000)}px #{random(2000)}px #{$color}";
+        @for $i from 2 through $n {
+          $value: "#{$value} , #{random(2000)}px #{random(2000)}px #{$color}";
+        }
+        @return unquote($value);
+      }
+
+      &.small {
+        box-shadow: multiple-box-shadow(700, #0d5e52);
+      }
+
+      &.medium {
+        box-shadow: multiple-box-shadow(200, #043936);
+      }
+
+      &.large {
+        box-shadow: multiple-box-shadow(100, #01171b);
+      }
     }
   }
 
   .top-menu {
+    background-color: $background;
+
     a {
       background-color: $dark;
       color: $light;

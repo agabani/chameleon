@@ -22,6 +22,9 @@ impl Component for Browse {
             <div class="browse">
                 <TopMenu active={Item::Browse} />
                 <div class="content">
+                    <div class="smoke medium"></div>
+                    <div class="smoke small"></div>
+                    <div class="smoke large"></div>
                     <div>
                         <div class="title">{ "Browse Servers" }</div>
                         <ServerList />

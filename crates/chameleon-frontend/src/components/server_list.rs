@@ -26,7 +26,7 @@ impl Component for ServerList {
                 </div>
                 <div class="body scrolling">
                 {
-                    (0..=10).map(|_| {
+                    (0..=10).map(|i| {
                         html!{
                             <>
                                 <ServerListItem
@@ -40,7 +40,7 @@ impl Component for ServerList {
                                     details="Manifest - Conquest Large"
                                     players="127 / 128"
                                     password=false
-                                    selected=true />
+                                    selected={ i == 2 } />
                                 <ServerListItem
                                     name="TDM"
                                     details="Noshahr Canals - Custom"
