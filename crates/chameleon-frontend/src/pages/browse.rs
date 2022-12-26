@@ -1,6 +1,10 @@
 use yew::prelude::*;
 
-use crate::components::top_menu::{Item, TopMenu};
+use crate::components::{
+    server_details::ServerDetails,
+    server_list::ServerList,
+    top_menu::{Item, TopMenu},
+};
 
 pub struct Browse {}
 
@@ -15,7 +19,17 @@ impl Component for Browse {
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
-            <TopMenu active={Item::Browse} />
+            <>
+                <TopMenu active={Item::Browse} />
+                <div class="browse">
+                    <div>
+                        <ServerList />
+                    </div>
+                    <div>
+                        <ServerDetails />
+                    </div>
+                </div>
+            </>
         }
     }
 }
