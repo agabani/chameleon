@@ -19,4 +19,16 @@ $light: #b4bebd;
       color: $dark;
     }
   }
+
+  .server-list-item {
+    .players,
+    .locked {
+      border-left-color: $light;
+    }
+
+    &.selected {
+      background-color: $highlight;
+      color: $dark;
+    }
+  }
 }

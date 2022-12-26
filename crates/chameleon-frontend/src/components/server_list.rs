@@ -16,9 +16,24 @@ impl Component for ServerList {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div class="server-list">
-                <ServerListItem />
-                <ServerListItem />
-                <ServerListItem />
+                <ServerListItem
+                    name="Hardcore 2042"
+                    details="Manifest - Conquest Large"
+                    players="127 / 128"
+                    password=false
+                    selected=false />
+                <ServerListItem
+                    name="Human vs AI"
+                    details="Manifest - Conquest Large"
+                    players="127 / 128"
+                    password=false
+                    selected=true />
+                <ServerListItem
+                    name="TDM"
+                    details="Noshahr Canals - Custom"
+                    players="31 / 32"
+                    password=true
+                    selected=false />
             </div>
         }
     }

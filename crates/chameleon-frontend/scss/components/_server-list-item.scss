@@ -1,2 +1,27 @@
 .server-list-item {
+  display: flex;
+
+  text-transform: uppercase;
+
+  & > div {
+    flex-basis: 10em;
+  }
+
+  .meta {
+    flex-grow: 100;
+  }
+
+  .players,
+  .locked {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-left-style: solid;
+    border-left-width: 1px;
+  }
+
+  &.selected {
+    font-family: "bold";
+  }
 }
