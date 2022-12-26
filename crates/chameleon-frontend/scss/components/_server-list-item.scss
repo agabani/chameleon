@@ -12,6 +12,11 @@
     flex-grow: 100;
   }
 
+  .name {
+    font-family: "bold";
+    margin-bottom: 0.5em;
+  }
+
   .players,
   .locked {
     display: flex;

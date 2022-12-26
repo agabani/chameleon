@@ -72,17 +72,23 @@ $scroll-foreground: #a4a7a7;
         border-color: $scroll-foreground;
       }
     }
+
+    .body .server-list-item {
+      &:nth-child(2n - 1) {
+        background-color: rgba($color: $light, $alpha: 0.025);
+      }
+
+      &.selected {
+        background-color: $highlight;
+        color: $dark;
+      }
+    }
   }
 
   .server-list-item {
     .players,
     .locked {
-      border-left-color: $light;
-    }
-
-    &.selected {
-      background-color: $highlight;
-      color: $dark;
+      border-left-color: rgba($light, 0.1);
     }
   }
 }
