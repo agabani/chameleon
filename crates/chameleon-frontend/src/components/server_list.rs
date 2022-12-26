@@ -16,24 +16,43 @@ impl Component for ServerList {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div class="server-list">
-                <ServerListItem
-                    name="Hardcore 2042"
-                    details="Manifest - Conquest Large"
-                    players="127 / 128"
-                    password=false
-                    selected=false />
-                <ServerListItem
-                    name="Human vs AI"
-                    details="Manifest - Conquest Large"
-                    players="127 / 128"
-                    password=false
-                    selected=true />
-                <ServerListItem
-                    name="TDM"
-                    details="Noshahr Canals - Custom"
-                    players="31 / 32"
-                    password=true
-                    selected=false />
+                <div class="title">{ "Browse Servers" }</div>
+                <div class="header">
+                    <ServerListItem
+                        name=""
+                        details=""
+                        players="players"
+                        password=false
+                        selected=false />
+                </div>
+                <div class="body scrolling">
+                {
+                    (0..=10).map(|_| {
+                        html!{
+                            <>
+                                <ServerListItem
+                                    name="Hardcore 2042"
+                                    details="Manifest - Conquest Large"
+                                    players="127 / 128"
+                                    password=false
+                                    selected=false />
+                                <ServerListItem
+                                    name="Human vs AI"
+                                    details="Manifest - Conquest Large"
+                                    players="127 / 128"
+                                    password=false
+                                    selected=true />
+                                <ServerListItem
+                                    name="TDM"
+                                    details="Noshahr Canals - Custom"
+                                    players="31 / 32"
+                                    password=true
+                                    selected=false />
+                            </>
+                        }
+                    }).collect::<Html>()
+                }
+                </div>
             </div>
         }
     }

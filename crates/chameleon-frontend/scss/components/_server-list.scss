@@ -1,2 +1,36 @@
 .server-list {
+  .title {
+    font-family: "bold";
+    font-size: 48px;
+    text-transform: uppercase;
+  }
+
+  .header {
+    padding-right: 24px;
+  }
+
+  .body {
+    padding-right: 16px;
+  }
+
+  .scrolling {
+    max-height: 70vh;
+    overflow-y: scroll;
+
+    /* Firefox */
+    & {
+      scrollbar-width: thin;
+    }
+
+    /* Chrome, Edge, and Safari */
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      border-radius: 0px;
+      border-width: 0px;
+      border-style: dashed;
+    }
+  }
 }

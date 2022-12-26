@@ -1,6 +1,8 @@
 $dark: #1c2028;
 $highlight: #26ffdf;
 $light: #b4bebd;
+$scroll-background: #595d5c;
+$scroll-foreground: #a4a7a7;
 
 .theme-dark {
   &.app {
@@ -17,6 +19,23 @@ $light: #b4bebd;
     a.active {
       background-color: $highlight;
       color: $dark;
+    }
+  }
+
+  .server-list {
+    .scrolling {
+      & {
+        scrollbar-color: $scroll-foreground $scroll-background;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: $scroll-background;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: $scroll-foreground;
+        border-color: $scroll-foreground;
+      }
     }
   }
 
