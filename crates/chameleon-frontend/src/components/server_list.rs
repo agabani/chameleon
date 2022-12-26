@@ -16,7 +16,7 @@ impl Component for ServerList {
     fn view(&self, _ctx: &Context<Self>) -> Html {
         html! {
             <div class="server-list">
-                <div class="header">
+                <div class="server-list--header">
                     <ServerListItem
                         name=""
                         details=""
@@ -24,7 +24,7 @@ impl Component for ServerList {
                         password=false
                         selected=false />
                 </div>
-                <div class="body scrolling">
+                <div class="server-list--body server-list--scrolling">
                 {
                     (0..=10).map(|i| {
                         html!{

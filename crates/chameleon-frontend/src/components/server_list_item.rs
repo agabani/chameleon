@@ -23,12 +23,12 @@ impl Component for ServerListItem {
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <div class={classes!("server-list-item", if ctx.props().selected {"selected"} else {""})}>
-                <div class="meta">
-                    <div class="name">{ &ctx.props().name }</div>
-                    <div class="detail">{ &ctx.props().details }</div>
+                <div class="server-list-item--meta">
+                    <div class="server-list-item--name">{ &ctx.props().name }</div>
+                    <div class="server-list-item--detail">{ &ctx.props().details }</div>
                 </div>
-                <div class="players">{ &ctx.props().players }</div>
-                <div class="locked">{ if ctx.props().password { "🔒" } else { " " } }</div>
+                <div class="server-list-item--players">{ &ctx.props().players }</div>
+                <div class="server-list-item--locked">{ if ctx.props().password { "🔒" } else { " " } }</div>
             </div>
         }
     }

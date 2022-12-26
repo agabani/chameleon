@@ -7,28 +7,27 @@
   .top-menu {
     z-index: 1;
   }
-  .content {
+  &--content {
     z-index: 0;
   }
-  .smoke {
+  &--smoke {
     z-index: -1;
   }
 
-  .content {
+  &--content {
     display: grid;
     grid-template-columns: 3fr 2fr;
   }
 
   &--list {
     padding: 2em;
-    height: 100%;
   }
 
   &--details {
     height: 100%;
   }
 
-  .smoke {
+  &--smoke {
     position: absolute;
 
     border-radius: 50%;

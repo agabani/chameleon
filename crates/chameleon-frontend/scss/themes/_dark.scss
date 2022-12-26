@@ -20,11 +20,11 @@ $scroll-foreground: #a4a7a7;
       background-color: rgba($color: #002020, $alpha: 0.85);
     }
 
-    .content {
+    &--content {
       background: radial-gradient(ellipse at bottom, #001113 0%, #000402 100%);
     }
 
-    .smoke {
+    &--smoke {
       @function multiple-box-shadow($n, $color) {
         $value: "#{random(2000)}px #{random(2000)}px #{$color}";
         @for $i from 2 through $n {
@@ -81,7 +81,7 @@ $scroll-foreground: #a4a7a7;
   }
 
   .server-list {
-    .scrolling {
+    &--scrolling {
       & {
         scrollbar-color: $scroll-foreground $scroll-background;
       }
@@ -96,7 +96,7 @@ $scroll-foreground: #a4a7a7;
       }
     }
 
-    .body .server-list-item {
+    &--body .server-list-item {
       &:nth-child(2n - 1) {
         background-color: rgba($color: $light, $alpha: 0.025);
       }
@@ -109,8 +109,8 @@ $scroll-foreground: #a4a7a7;
   }
 
   .server-list-item {
-    .players,
-    .locked {
+    &--players,
+    &--locked {
       border-left-color: rgba($light, 0.1);
     }
   }

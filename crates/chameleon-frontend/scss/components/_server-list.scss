@@ -1,13 +1,13 @@
 .server-list {
-  .header {
+  &--header {
     padding-right: 24px;
   }
 
-  .body {
+  &--body {
     padding-right: 16px;
   }
 
-  .scrolling {
+  &--scrolling {
     max-height: 70vh;
     overflow-y: scroll;
 

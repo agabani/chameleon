@@ -21,10 +21,10 @@ impl Component for Browse {
         html! {
             <div class="browse">
                 <TopMenu active={Item::Browse} />
-                <div class="content">
-                    <div class="smoke medium"></div>
-                    <div class="smoke small"></div>
-                    <div class="smoke large"></div>
+                <div class="browse--content">
+                    <div class="browse--smoke medium"></div>
+                    <div class="browse--smoke small"></div>
+                    <div class="browse--smoke large"></div>
                     <div class="browse--list">
                         <div class="browse--title">{ "Browse Servers" }</div>
                         <ServerList />
