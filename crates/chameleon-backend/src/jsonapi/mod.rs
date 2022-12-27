@@ -4,6 +4,8 @@ mod game;
 mod user;
 
 pub trait ToResource {
+    const PATH: &'static str;
+
     const TYPE: &'static str;
 
     type Attributes;
@@ -14,7 +16,7 @@ pub trait ToResource {
             type_: self.__type().into(),
             attributes: self.__attributes(),
             links: self.__links(variation),
-            relationships: self.__relationships(variation),
+            relationships: self.__relationships(),
         }
     }
 
@@ -24,14 +26,19 @@ pub trait ToResource {
 
     fn __links(&self, variation: Variation) -> Option<Links> {
         match variation {
-            Variation::Nested(path) => {
-                Links([("self".to_string(), format!("{path}/{}", self.__id()))].into()).into()
-            }
-            Variation::Root(_) => None,
+            Variation::Nested => Links(
+                [(
+                    "self".to_string(),
+                    format!("{}/{}", Self::PATH, self.__id()),
+                )]
+                .into(),
+            )
+            .into(),
+            Variation::Root => None,
         }
     }
 
-    fn __relationships(&self, variation: Variation) -> Option<Relationships>;
+    fn __relationships(&self) -> Option<Relationships>;
 
     fn __type(&self) -> String {
         Self::TYPE.to_string()
@@ -56,7 +63,7 @@ pub trait ToResourceIdentifier {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum Variation<'a> {
-    Nested(&'a str),
-    Root(&'a str),
+pub enum Variation {
+    Nested,
+    Root,
 }

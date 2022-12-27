@@ -5,11 +5,13 @@ use chameleon_protocol::{
 
 use crate::domain::{Game, GameId};
 
-use super::{ToResource, ToResourceIdentifier, Variation};
+use super::{ToResource, ToResourceIdentifier};
 
 const TYPE: &str = "game";
 
 impl ToResource for Game {
+    const PATH: &'static str = "/api/v1/games";
+
     const TYPE: &'static str = TYPE;
 
     type Attributes = GameAttributes;
@@ -24,7 +26,7 @@ impl ToResource for Game {
         self.id.0.to_string()
     }
 
-    fn __relationships(&self, variation: Variation) -> Option<Relationships> {
+    fn __relationships(&self) -> Option<Relationships> {
         Some(Relationships(
             [(
                 "host".to_string(),
@@ -36,19 +38,11 @@ impl ToResource for Game {
                         [
                             (
                                 "self".to_string(),
-                                match variation {
-                                    Variation::Nested(base) | Variation::Root(base) => {
-                                        format!("{base}/{}/relationships/host", self.id.0)
-                                    }
-                                },
+                                format!("{}/{}/relationships/host", Self::PATH, self.id.0),
                             ),
                             (
                                 "related".to_string(),
-                                match variation {
-                                    Variation::Nested(base) | Variation::Root(base) => {
-                                        format!("{base}/{}/host", self.id.0)
-                                    }
-                                },
+                                format!("{}/{}/host", Self::PATH, self.id.0),
                             ),
                         ]
                         .into(),

@@ -64,7 +64,7 @@ async fn create_one(
             conn.commit().await?;
 
             let document = ResourcesDocument {
-                data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
+                data: Resources::Individual(game.to_resource(Variation::Root)).into(),
                 errors: None,
                 links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
             };
@@ -89,7 +89,7 @@ async fn get_one(
 
     if let Some(game) = game {
         let document = ResourcesDocument {
-            data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
+            data: Resources::Individual(game.to_resource(Variation::Root)).into(),
             errors: None,
             links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
         };
@@ -126,7 +126,7 @@ async fn get_many(
         data: Resources::Collection(
             games
                 .iter()
-                .map(|game| game.to_resource(Variation::Nested(PATH)))
+                .map(|game| game.to_resource(Variation::Nested))
                 .collect::<Vec<_>>(),
         )
         .into(),
@@ -188,7 +188,7 @@ async fn update_one(
             };
 
             let document = ResourcesDocument {
-                data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
+                data: Resources::Individual(game.to_resource(Variation::Root)).into(),
                 errors: None,
                 links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
             };
@@ -245,8 +245,7 @@ async fn get_host(
     };
 
     let document = ResourcesDocument {
-        data: Resources::Individual(user.to_resource(Variation::Nested(super::api_v1_users::PATH)))
-            .into(),
+        data: Resources::Individual(user.to_resource(Variation::Nested)).into(),
         errors: None,
         links: Links([("self".to_string(), format!("{PATH}/{}/host", game_id.0))].into()).into(),
     };

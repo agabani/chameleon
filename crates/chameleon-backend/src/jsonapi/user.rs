@@ -2,11 +2,13 @@ use chameleon_protocol::attributes::UserAttributes;
 
 use crate::domain::{User, UserId};
 
-use super::{ToResource, ToResourceIdentifier, Variation};
+use super::{ToResource, ToResourceIdentifier};
 
 const TYPE: &str = "user";
 
 impl ToResource for User {
+    const PATH: &'static str = "/api/v1/users";
+
     const TYPE: &'static str = TYPE;
 
     type Attributes = UserAttributes;
@@ -21,10 +23,7 @@ impl ToResource for User {
         self.id.0.to_string()
     }
 
-    fn __relationships(
-        &self,
-        _variation: Variation,
-    ) -> Option<chameleon_protocol::jsonapi::Relationships> {
+    fn __relationships(&self) -> Option<chameleon_protocol::jsonapi::Relationships> {
         None
     }
 }
