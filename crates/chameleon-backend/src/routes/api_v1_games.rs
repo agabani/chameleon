@@ -82,8 +82,8 @@ async fn create_one(
                             "host".to_string(),
                             Relationship {
                                 data: ResourceIdentifiers::Individual(ResourceIdentifier {
-                                    id: "user".to_string().into(),
-                                    type_: game.host.0.to_string().into(),
+                                    id: game.host.0.to_string().into(),
+                                    type_: "user".to_string().into(),
                                 })
                                 .into(),
                                 links: Links(
@@ -144,8 +144,8 @@ async fn get_one(
                         "host".to_string(),
                         Relationship {
                             data: ResourceIdentifiers::Individual(ResourceIdentifier {
-                                id: "user".to_string().into(),
-                                type_: game.host.0.to_string().into(),
+                                id: game.host.0.to_string().into(),
+                                type_: "user".to_string().into(),
                             })
                             .into(),
                             links: Links(
@@ -219,8 +219,8 @@ async fn get_many(
                             "host".to_string(),
                             Relationship {
                                 data: ResourceIdentifiers::Individual(ResourceIdentifier {
-                                    id: "user".to_string().into(),
-                                    type_: game.host.0.to_string().into(),
+                                    id: game.host.0.to_string().into(),
+                                    type_: "user".to_string().into(),
                                 })
                                 .into(),
                                 links: Links(
@@ -317,8 +317,8 @@ async fn update_one(
                             "host".to_string(),
                             Relationship {
                                 data: ResourceIdentifiers::Individual(ResourceIdentifier {
-                                    id: "user".to_string().into(),
-                                    type_: game.host.0.to_string().into(),
+                                    id: game.host.0.to_string().into(),
+                                    type_: "user".to_string().into(),
                                 })
                                 .into(),
                                 links: Links(

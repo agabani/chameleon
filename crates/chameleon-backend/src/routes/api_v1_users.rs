@@ -36,19 +36,22 @@ async fn create_one(
         .await?
         .is_some()
     {
-        return Err(ApiError::JsonApi(jsonapi::Error {
-            status: 403,
-            source: Source {
-                header: "x-chameleon-local-id".to_string().into(),
-                parameter: None,
-                pointer: None,
+        return Err(ApiError::JsonApi(
+            jsonapi::Error {
+                status: 403,
+                source: Source {
+                    header: "x-chameleon-local-id".to_string().into(),
+                    parameter: None,
+                    pointer: None,
+                }
+                .into(),
+                title: "Forbidden".to_string().into(),
+                detail: "`x-chameleon-local-id` is already associated with a user"
+                    .to_string()
+                    .into(),
             }
             .into(),
-            title: "Forbidden".to_string().into(),
-            detail: "`x-chameleon-local-id` is already associated with a user"
-                .to_string()
-                .into(),
-        }));
+        ));
     }
 
     let user = User {
@@ -140,14 +143,17 @@ async fn update_one(
     Json(document): Json<Document<UserAttributes>>,
 ) -> Result<Response, ApiError> {
     if user_id != id {
-        return Err(ApiError::JsonApi(jsonapi::Error {
-            status: 403,
-            source: None,
-            title: "Forbidden".to_string().into(),
-            detail: "You do not have sufficient permissions to update this user"
-                .to_string()
-                .into(),
-        }));
+        return Err(ApiError::JsonApi(
+            jsonapi::Error {
+                status: 403,
+                source: None,
+                title: "Forbidden".to_string().into(),
+                detail: "You do not have sufficient permissions to update this user"
+                    .to_string()
+                    .into(),
+            }
+            .into(),
+        ));
     }
 
     let Some(mut user) = Database::select_user(&state.postgres_pool, id).await? else {
@@ -156,7 +162,7 @@ async fn update_one(
             source: None,
             title: "Not Found".to_string().into(),
             detail: "User does not exist".to_string().into()
-        }));
+        }.into()));
     };
 
     let resource = document.try_get_resources()?.try_get_individual()?;

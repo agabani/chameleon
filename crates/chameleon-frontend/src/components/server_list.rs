@@ -30,12 +30,11 @@ impl Component for ServerList {
     type Properties = Props;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let this = Self {
+        Self::fetch(ctx);
+        Self {
             games: Vec::new(),
             selected: None,
-        };
-        this.fetch(ctx);
-        this
+        }
     }
 
     fn view(&self, ctx: &Context<Self>) -> Html {
@@ -78,7 +77,7 @@ impl Component for ServerList {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::FetchFailure(error) => self.handle_fetch_failure(error),
+            Msg::FetchFailure(error) => Self::handle_fetch_failure(&error),
             Msg::FetchSuccess(document) => self.handle_fetch_success(document),
             Msg::ItemClicked(id) => {
                 ctx.props().onclick.emit(id.clone());
@@ -90,7 +89,7 @@ impl Component for ServerList {
 }
 
 impl ServerList {
-    fn fetch(&self, ctx: &Context<Self>) {
+    fn fetch(ctx: &Context<Self>) {
         let service = Service::from_context(ctx);
         ctx.link().send_future(async move {
             match service.api.query_games(None).await {
@@ -100,7 +99,7 @@ impl ServerList {
         });
     }
 
-    fn handle_fetch_failure(&self, error: gloo::net::Error) -> bool {
+    fn handle_fetch_failure(error: &gloo::net::Error) -> bool {
         gloo::console::error!(format!("{error:?}"));
         true
     }

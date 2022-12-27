@@ -7,12 +7,18 @@ use chameleon_protocol::jsonapi::{self, Document, Errors};
 
 #[allow(clippy::module_name_repetitions)]
 pub enum ApiError {
-    JsonApi(jsonapi::Error),
+    JsonApi(Box<jsonapi::Error>),
     Sqlx(sqlx::Error),
 }
 
 impl From<jsonapi::Error> for ApiError {
     fn from(error: jsonapi::Error) -> Self {
+        Self::JsonApi(error.into())
+    }
+}
+
+impl From<Box<jsonapi::Error>> for ApiError {
+    fn from(error: Box<jsonapi::Error>) -> Self {
         Self::JsonApi(error)
     }
 }
@@ -30,7 +36,7 @@ impl IntoResponse for ApiError {
                 StatusCode::from_u16(error.status).unwrap(),
                 Json(Document::<()> {
                     data: None,
-                    errors: Errors(vec![error]).into(),
+                    errors: Errors(vec![*error]).into(),
                     links: None,
                 }),
             )

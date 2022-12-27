@@ -113,34 +113,55 @@ pub struct Source {
 }
 
 impl<T> Document<T> {
-    #[allow(clippy::result_large_err)]
-    pub fn try_get_resources(&self) -> Result<&Resources<T>, Error> {
-        self.data.as_ref().ok_or_else(|| Error {
-            status: 422,
-            source: Source {
-                header: None,
-                parameter: None,
-                pointer: "/data".to_string().into(),
+    pub fn try_get_resources(&self) -> Result<&Resources<T>, Box<Error>> {
+        self.data.as_ref().ok_or_else(|| {
+            Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: "/data".to_string().into(),
+                }
+                .into(),
+                title: "Invalid Member".to_string().into(),
+                detail: "Data must be present".to_string().into(),
             }
-            .into(),
-            title: "Invalid Member".to_string().into(),
-            detail: "Data must be present".to_string().into(),
+            .into()
+        })
+    }
+}
+
+impl Relationship {
+    pub fn try_get_resource_identifiers(
+        &self,
+        name: &str,
+    ) -> Result<&ResourceIdentifiers, Box<Error>> {
+        self.data.as_ref().ok_or_else(|| {
+            Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: format!("/data/relationship/{name}/data").into(),
+                }
+                .into(),
+                title: "Invalid Member".to_string().into(),
+                detail: "Data must be present".to_string().into(),
+            }
+            .into()
         })
     }
 }
 
 impl<T> Resource<T> {
-    #[allow(clippy::result_large_err)]
     pub fn try_get_attribute<A>(
         &self,
         accessor: impl Fn(&T) -> Option<&A>,
         name: &str,
         display: &str,
-    ) -> Result<&A, Error> {
-        self.attributes
-            .as_ref()
-            .and_then(accessor)
-            .ok_or_else(|| Error {
+    ) -> Result<&A, Box<Error>> {
+        self.attributes.as_ref().and_then(accessor).ok_or_else(|| {
+            Error {
                 status: 422,
                 source: Source {
                     header: None,
@@ -150,33 +171,60 @@ impl<T> Resource<T> {
                 .into(),
                 title: "Invalid Attribute".to_string().into(),
                 detail: format!("{display} must be present").into(),
-            })
+            }
+            .into()
+        })
     }
 
-    #[allow(clippy::result_large_err)]
     pub fn try_get_field<A>(
         &self,
         accessor: impl Fn(&Self) -> Option<&A>,
         name: &str,
         display: &str,
-    ) -> Result<&A, Error> {
-        accessor(self).ok_or_else(|| Error {
-            status: 422,
-            source: Source {
-                header: None,
-                parameter: None,
-                pointer: format!("/data/{name}").into(),
+    ) -> Result<&A, Box<Error>> {
+        accessor(self).ok_or_else(|| {
+            Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: format!("/data/{name}").into(),
+                }
+                .into(),
+                title: "Invalid Field".to_string().into(),
+                detail: format!("{display} must be present").into(),
             }
-            .into(),
-            title: "Invalid Field".to_string().into(),
-            detail: format!("{display} must be present").into(),
+            .into()
         })
+    }
+
+    pub fn try_get_relationship(
+        &self,
+        name: &str,
+        display: &str,
+    ) -> Result<&Relationship, Box<Error>> {
+        self.relationships
+            .as_ref()
+            .and_then(|r| r.0.get(name))
+            .ok_or_else(|| {
+                Error {
+                    status: 422,
+                    source: Source {
+                        header: None,
+                        parameter: None,
+                        pointer: format!("/data/relationships/{name}").into(),
+                    }
+                    .into(),
+                    title: "Invalid Attribute".to_string().into(),
+                    detail: format!("{display} must be present").into(),
+                }
+                .into()
+            })
     }
 }
 
 impl<T> Resources<T> {
-    #[allow(clippy::result_large_err)]
-    pub fn try_get_collection(&self) -> Result<&Vec<Resource<T>>, Error> {
+    pub fn try_get_collection(&self) -> Result<&Vec<Resource<T>>, Box<Error>> {
         match self {
             Resources::Collection(resources) => Ok(resources),
             Resources::Individual(_) => Err(Error {
@@ -189,12 +237,12 @@ impl<T> Resources<T> {
                 .into(),
                 title: "Invalid Member".to_string().into(),
                 detail: "Data must be a resource array".to_string().into(),
-            }),
+            }
+            .into()),
         }
     }
 
-    #[allow(clippy::result_large_err)]
-    pub fn try_get_individual(&self) -> Result<&Resource<T>, Error> {
+    pub fn try_get_individual(&self) -> Result<&Resource<T>, Box<Error>> {
         match self {
             Resources::Collection(_) => Err(Error {
                 status: 422,
@@ -206,8 +254,79 @@ impl<T> Resources<T> {
                 .into(),
                 title: "Invalid Member".to_string().into(),
                 detail: "Data must be a resource object".to_string().into(),
-            }),
+            }
+            .into()),
             Resources::Individual(resource) => Ok(resource),
         }
+    }
+}
+
+impl ResourceIdentifiers {
+    pub fn try_get_collection(
+        &self,
+        name: &str,
+        display: &str,
+    ) -> Result<&Vec<ResourceIdentifier>, Box<Error>> {
+        match self {
+            ResourceIdentifiers::Collection(resources) => Ok(resources),
+            ResourceIdentifiers::Individual(_) => Err(Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: format!("/data/relationships/{name}").into(),
+                }
+                .into(),
+                title: "Invalid Relationship".to_string().into(),
+                detail: format!("{display} must be a resource identifier array").into(),
+            }
+            .into()),
+        }
+    }
+
+    pub fn try_get_individual(
+        &self,
+        name: &str,
+        display: &str,
+    ) -> Result<&ResourceIdentifier, Box<Error>> {
+        match self {
+            ResourceIdentifiers::Collection(_) => Err(Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: format!("/data/relationships/{name}").into(),
+                }
+                .into(),
+                title: "Invalid Relationship".to_string().into(),
+                detail: format!("{display} must be a resource identifier object").into(),
+            }
+            .into()),
+            ResourceIdentifiers::Individual(resource) => Ok(resource),
+        }
+    }
+}
+
+impl ResourceIdentifier {
+    pub fn try_get_field<A>(
+        &self,
+        accessor: impl Fn(&Self) -> Option<&A>,
+        name: &str,
+        display: &str,
+    ) -> Result<&A, Box<Error>> {
+        accessor(self).ok_or_else(|| {
+            Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: format!("/data/relationships/*/data/{name}").into(),
+                }
+                .into(),
+                title: "Invalid Field".to_string().into(),
+                detail: format!("{display} must be present").into(),
+            }
+            .into()
+        })
     }
 }

@@ -23,8 +23,8 @@ impl Component for Browse {
         Self { selected: None }
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
-        let item_selected = _ctx.link().callback(|id| Msg::ItemSelected(id));
+    fn view(&self, ctx: &Context<Self>) -> Html {
+        let item_selected = ctx.link().callback(Msg::ItemSelected);
 
         html! {
             <div class="browse">
@@ -41,19 +41,7 @@ impl Component for Browse {
                         {
                             if let Some(selected) = &self.selected {
                                 html!{
-                                    <ServerDetails
-                                        id={ selected.clone() }
-                                        name="Hardcore 2042"
-                                        host="Ahn Bo Hyun"
-                                        modifiers={vec![
-                                            "Disappearing Hints".into(),
-                                            "Unlimited Discussion".into(),
-                                            "5 Rounds".into(),
-                                            "Custom Topic Cards".into(),
-                                            "Dice".into(),
-                                            "Shuffled Secrets".into(),
-                                            "Spectators".into(),
-                                        ]} />
+                                    <ServerDetails id={ selected.clone() } />
                                 }
                             } else {
                                 html!{}
@@ -66,7 +54,7 @@ impl Component for Browse {
         }
     }
 
-    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::ItemSelected(id) => {
                 self.selected = Some(id);

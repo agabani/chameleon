@@ -51,6 +51,15 @@ impl ApiService {
             .await
     }
 
+    pub async fn get_game(&self, id: &str) -> Result<Document<GameAttributes>, Error> {
+        Request::get(&format!("/api/v1/games/{id}"))
+            .authentication_headers()
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn create_user(
         &self,
         document: &Document<UserAttributes>,

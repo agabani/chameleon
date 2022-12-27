@@ -24,7 +24,25 @@ impl<S> FromRequestParts<S> for LocalId {
                 .get("x-chameleon-local-id")
                 .and_then(|header| header.to_str().ok())
                 .ok_or_else(|| {
-                    ApiError::JsonApi(jsonapi::Error {
+                    ApiError::JsonApi(
+                        jsonapi::Error {
+                            status: 400,
+                            source: Source {
+                                header: "x-chameleon-local-id".to_string().into(),
+                                parameter: None,
+                                pointer: None,
+                            }
+                            .into(),
+                            title: "Invalid Header".to_string().into(),
+                            detail: "`x-chameleon-local-id` must be present".to_string().into(),
+                        }
+                        .into(),
+                    )
+                })?;
+
+            LocalId::from_str(header).map_err(|error| {
+                ApiError::JsonApi(
+                    jsonapi::Error {
                         status: 400,
                         source: Source {
                             header: "x-chameleon-local-id".to_string().into(),
@@ -33,22 +51,10 @@ impl<S> FromRequestParts<S> for LocalId {
                         }
                         .into(),
                         title: "Invalid Header".to_string().into(),
-                        detail: "`x-chameleon-local-id` must be present".to_string().into(),
-                    })
-                })?;
-
-            LocalId::from_str(header).map_err(|error| {
-                ApiError::JsonApi(jsonapi::Error {
-                    status: 400,
-                    source: Source {
-                        header: "x-chameleon-local-id".to_string().into(),
-                        parameter: None,
-                        pointer: None,
+                        detail: error.to_string().into(),
                     }
                     .into(),
-                    title: "Invalid Header".to_string().into(),
-                    detail: error.to_string().into(),
-                })
+                )
             })
         })
     }
