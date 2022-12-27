@@ -8,16 +8,14 @@ use axum::{
 };
 use chameleon_protocol::{
     attributes::GameAttributes,
-    jsonapi::{
-        self, Document, Errors, Links, Pagination, Relationship, Relationships, Resource,
-        ResourceIdentifier, ResourceIdentifiers, Resources,
-    },
+    jsonapi::{self, Document, Errors, Links, Pagination, Resources},
 };
 
 use crate::{
     database::Database,
     domain::{Game, GameId, LocalId, UserId},
     error::ApiError,
+    jsonapi::{ToJsonApi, Variation},
     AppState,
 };
 
@@ -69,44 +67,7 @@ async fn create_one(
             conn.commit().await?;
 
             let document = Document {
-                data: Resources::Individual(Resource {
-                    id: game.id.0.to_string().into(),
-                    type_: "game".to_string().into(),
-                    attributes: GameAttributes {
-                        name: game.name.into(),
-                    }
-                    .into(),
-                    links: None,
-                    relationships: Relationships(
-                        [(
-                            "host".to_string(),
-                            Relationship {
-                                data: ResourceIdentifiers::Individual(ResourceIdentifier {
-                                    id: game.host.0.to_string().into(),
-                                    type_: "user".to_string().into(),
-                                })
-                                .into(),
-                                links: Links(
-                                    [
-                                        (
-                                            "self".to_string(),
-                                            format!("{PATH}/{}/relationships/host", game.id.0),
-                                        ),
-                                        (
-                                            "related".to_string(),
-                                            format!("{PATH}/{}/host", game.host.0),
-                                        ),
-                                    ]
-                                    .into(),
-                                )
-                                .into(),
-                            },
-                        )]
-                        .into(),
-                    )
-                    .into(),
-                })
-                .into(),
+                data: Resources::Individual(game.to_resource(Variation::Individual(PATH))).into(),
                 errors: None,
                 links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
             };
@@ -131,44 +92,7 @@ async fn get_one(
 
     if let Some(game) = game {
         let document = Document {
-            data: Resources::Individual(Resource {
-                id: game.id.0.to_string().into(),
-                type_: "game".to_string().into(),
-                attributes: GameAttributes {
-                    name: game.name.into(),
-                }
-                .into(),
-                links: None,
-                relationships: Relationships(
-                    [(
-                        "host".to_string(),
-                        Relationship {
-                            data: ResourceIdentifiers::Individual(ResourceIdentifier {
-                                id: game.host.0.to_string().into(),
-                                type_: "user".to_string().into(),
-                            })
-                            .into(),
-                            links: Links(
-                                [
-                                    (
-                                        "self".to_string(),
-                                        format!("{PATH}/{}/relationships/host", game.id.0),
-                                    ),
-                                    (
-                                        "related".to_string(),
-                                        format!("{PATH}/{}/host", game.host.0),
-                                    ),
-                                ]
-                                .into(),
-                            )
-                            .into(),
-                        },
-                    )]
-                    .into(),
-                )
-                .into(),
-            })
-            .into(),
+            data: Resources::Individual(game.to_resource(Variation::Individual(PATH))).into(),
             errors: None,
             links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
         };
@@ -204,46 +128,9 @@ async fn get_many(
     let document = Document {
         data: Resources::Collection(
             games
-                .into_iter()
-                .map(|game| Resource {
-                    id: game.id.0.to_string().into(),
-                    type_: "game".to_string().into(),
-                    attributes: GameAttributes {
-                        name: game.name.into(),
-                    }
-                    .into(),
-                    links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into())
-                        .into(),
-                    relationships: Relationships(
-                        [(
-                            "host".to_string(),
-                            Relationship {
-                                data: ResourceIdentifiers::Individual(ResourceIdentifier {
-                                    id: game.host.0.to_string().into(),
-                                    type_: "user".to_string().into(),
-                                })
-                                .into(),
-                                links: Links(
-                                    [
-                                        (
-                                            "self".to_string(),
-                                            format!("{PATH}/{}/relationships/host", game.id.0),
-                                        ),
-                                        (
-                                            "related".to_string(),
-                                            format!("{PATH}/{}/host", game.host.0),
-                                        ),
-                                    ]
-                                    .into(),
-                                )
-                                .into(),
-                            },
-                        )]
-                        .into(),
-                    )
-                    .into(),
-                })
-                .collect(),
+                .iter()
+                .map(|game| game.to_resource(Variation::Collection(PATH)))
+                .collect::<Vec<_>>(),
         )
         .into(),
         errors: None,
@@ -252,14 +139,14 @@ async fn get_many(
                 (
                     "self".to_string(),
                     format!(
-                        "/api/v1/games?page[after]={}&page[size]={}",
+                        "{PATH}?page[after]={}&page[size]={}",
                         keyset_pagination.id, keyset_pagination.limit
                     ),
                 ),
                 (
                     "next".to_string(),
                     format!(
-                        "/api/v1/games?page[after]={}&page[size]={}",
+                        "{PATH}?page[after]={}&page[size]={}",
                         after, keyset_pagination.limit
                     ),
                 ),
@@ -304,44 +191,7 @@ async fn update_one(
             };
 
             let document = Document {
-                data: Resources::Individual(Resource {
-                    id: game.id.0.to_string().into(),
-                    type_: "game".to_string().into(),
-                    attributes: GameAttributes {
-                        name: game.name.into(),
-                    }
-                    .into(),
-                    links: None,
-                    relationships: Relationships(
-                        [(
-                            "host".to_string(),
-                            Relationship {
-                                data: ResourceIdentifiers::Individual(ResourceIdentifier {
-                                    id: game.host.0.to_string().into(),
-                                    type_: "user".to_string().into(),
-                                })
-                                .into(),
-                                links: Links(
-                                    [
-                                        (
-                                            "self".to_string(),
-                                            format!("{PATH}/{}/relationships/host", game.id.0),
-                                        ),
-                                        (
-                                            "related".to_string(),
-                                            format!("{PATH}/{}/host", game.host.0),
-                                        ),
-                                    ]
-                                    .into(),
-                                )
-                                .into(),
-                            },
-                        )]
-                        .into(),
-                    )
-                    .into(),
-                })
-                .into(),
+                data: Resources::Individual(game.to_resource(Variation::Individual(PATH))).into(),
                 errors: None,
                 links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
             };

@@ -5,6 +5,7 @@ mod database;
 mod domain;
 mod error;
 mod extract;
+mod jsonapi;
 mod routes;
 
 use std::net::SocketAddr;
