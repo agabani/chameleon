@@ -1,4 +1,7 @@
-use chameleon_protocol::{attributes::GameAttributes, jsonapi::ResourcesDocument};
+use chameleon_protocol::{
+    attributes::{GameAttributes, UserAttributes},
+    jsonapi::ResourcesDocument,
+};
 use yew::prelude::*;
 
 use crate::services::Service;
@@ -9,9 +12,12 @@ pub struct ServerDetails {
     name: Option<AttrValue>,
 }
 
+#[allow(clippy::enum_variant_names)]
 pub enum Msg {
-    FetchFailure(gloo::net::Error),
-    FetchSuccess(ResourcesDocument<GameAttributes>),
+    FetchGameFailure(gloo::net::Error),
+    FetchGameSuccess(ResourcesDocument<GameAttributes>),
+    FetchGameHostFailure(gloo::net::Error),
+    FetchGameHostSuccess(ResourcesDocument<UserAttributes>),
 }
 
 #[derive(PartialEq, Properties)]
@@ -25,7 +31,8 @@ impl Component for ServerDetails {
     type Properties = Props;
 
     fn create(ctx: &Context<Self>) -> Self {
-        Self::fetch(ctx);
+        Self::fetch_game(ctx);
+        Self::fetch_game_host(ctx);
         Self {
             host: None,
             modifiers: None,
@@ -62,27 +69,42 @@ impl Component for ServerDetails {
 
     fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::FetchFailure(error) => Self::handle_fetch_failure(&error),
-            Msg::FetchSuccess(document) => self.handle_fetch_success(document),
+            Msg::FetchGameFailure(error) | Msg::FetchGameHostFailure(error) => {
+                Self::handle_fetch_failure(&error)
+            }
+            Msg::FetchGameSuccess(document) => self.handle_fetch_game_success(document),
+            Msg::FetchGameHostSuccess(document) => self.handle_fetch_game_host_success(document),
         }
     }
 
     fn changed(&mut self, ctx: &Context<Self>, old_props: &Self::Properties) -> bool {
         if ctx.props().id != old_props.id {
-            Self::fetch(ctx);
+            Self::fetch_game(ctx);
+            Self::fetch_game_host(ctx);
         }
         true
     }
 }
 
 impl ServerDetails {
-    fn fetch(ctx: &Context<Self>) {
+    fn fetch_game(ctx: &Context<Self>) {
         let id = ctx.props().id.clone();
         let service = Service::from_context(ctx);
         ctx.link().send_future(async move {
             match service.api.get_game(&id).await {
-                Ok(document) => Msg::FetchSuccess(document),
-                Err(error) => Msg::FetchFailure(error),
+                Ok(document) => Msg::FetchGameSuccess(document),
+                Err(error) => Msg::FetchGameFailure(error),
+            }
+        });
+    }
+
+    fn fetch_game_host(ctx: &Context<Self>) {
+        let id = ctx.props().id.clone();
+        let service = Service::from_context(ctx);
+        ctx.link().send_future(async move {
+            match service.api.get_game_host(&id).await {
+                Ok(document) => Msg::FetchGameHostSuccess(document),
+                Err(error) => Msg::FetchGameHostFailure(error),
             }
         });
     }
@@ -92,7 +114,7 @@ impl ServerDetails {
         true
     }
 
-    fn handle_fetch_success(&mut self, document: ResourcesDocument<GameAttributes>) -> bool {
+    fn handle_fetch_game_success(&mut self, document: ResourcesDocument<GameAttributes>) -> bool {
         if let Some(error) = document.errors {
             gloo::console::error!(format!("{error:?}"));
             return true;
@@ -112,18 +134,31 @@ impl ServerDetails {
 
         self.name = Some(name.into());
 
-        let host = individual
-            .try_get_relationship("host", "Host")
-            .expect("Expected relationship")
-            .try_get_resource_identifiers("host")
-            .expect("Expected resource identifiers")
-            .try_get_individual("host", "Host")
+        true
+    }
+
+    fn handle_fetch_game_host_success(
+        &mut self,
+        document: ResourcesDocument<UserAttributes>,
+    ) -> bool {
+        if let Some(error) = document.errors {
+            gloo::console::error!(format!("{error:?}"));
+            return true;
+        }
+
+        let individual = document
+            .try_get_resources()
+            .expect("Expected resources")
+            .try_get_individual()
             .expect("Expected individual")
-            .try_get_field(|a| a.id.as_ref(), "id", "Id")
-            .expect("Expected Id")
             .clone();
 
-        self.host = Some(host.into());
+        let name = individual
+            .try_get_attribute(|a| a.name.as_ref(), "name", "Name")
+            .expect("Expected name")
+            .clone();
+
+        self.host = Some(name.into());
 
         true
     }
