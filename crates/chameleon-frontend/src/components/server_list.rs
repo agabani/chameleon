@@ -1,6 +1,6 @@
 use chameleon_protocol::{
     attributes::GameAttributes,
-    jsonapi::{Document, Resource},
+    jsonapi::{Resource, ResourcesDocument},
 };
 use yew::prelude::*;
 
@@ -15,7 +15,7 @@ pub struct ServerList {
 
 pub enum Msg {
     FetchFailure(gloo::net::Error),
-    FetchSuccess(Document<GameAttributes>),
+    FetchSuccess(ResourcesDocument<GameAttributes>),
     ItemClicked(String),
 }
 
@@ -104,7 +104,7 @@ impl ServerList {
         true
     }
 
-    fn handle_fetch_success(&mut self, document: Document<GameAttributes>) -> bool {
+    fn handle_fetch_success(&mut self, document: ResourcesDocument<GameAttributes>) -> bool {
         if let Some(error) = document.errors {
             gloo::console::error!(format!("{error:?}"));
             return true;

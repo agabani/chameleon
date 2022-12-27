@@ -3,7 +3,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use chameleon_protocol::jsonapi::{self, Document, Errors};
+use chameleon_protocol::jsonapi::{self, Errors, ResourcesDocument};
 
 #[allow(clippy::module_name_repetitions)]
 pub enum ApiError {
@@ -34,7 +34,7 @@ impl IntoResponse for ApiError {
         match self {
             ApiError::JsonApi(error) => (
                 StatusCode::from_u16(error.status).unwrap(),
-                Json(Document::<()> {
+                Json(ResourcesDocument::<()> {
                     data: None,
                     errors: Errors(vec![*error]).into(),
                     links: None,
@@ -45,7 +45,7 @@ impl IntoResponse for ApiError {
                 tracing::error!(error =? error, "internal server error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(Document::<()> {
+                    Json(ResourcesDocument::<()> {
                         data: None,
                         errors: Errors(vec![jsonapi::Error {
                             status: 500,

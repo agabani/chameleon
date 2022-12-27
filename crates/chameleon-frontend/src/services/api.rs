@@ -1,7 +1,7 @@
 use chameleon_protocol::{
     attributes::{GameAttributes, UserAttributes},
     http,
-    jsonapi::Document,
+    jsonapi::ResourcesDocument,
     openid_connect,
 };
 use gloo::{
@@ -42,7 +42,10 @@ impl ApiService {
         }
     }
 
-    pub async fn query_games(&self, url: Option<&str>) -> Result<Document<GameAttributes>, Error> {
+    pub async fn query_games(
+        &self,
+        url: Option<&str>,
+    ) -> Result<ResourcesDocument<GameAttributes>, Error> {
         Request::get(url.unwrap_or("/api/v1/games"))
             .authentication_headers()
             .send()
@@ -51,7 +54,7 @@ impl ApiService {
             .await
     }
 
-    pub async fn get_game(&self, id: &str) -> Result<Document<GameAttributes>, Error> {
+    pub async fn get_game(&self, id: &str) -> Result<ResourcesDocument<GameAttributes>, Error> {
         Request::get(&format!("/api/v1/games/{id}"))
             .authentication_headers()
             .send()
@@ -62,8 +65,8 @@ impl ApiService {
 
     pub async fn create_user(
         &self,
-        document: &Document<UserAttributes>,
-    ) -> Result<Document<UserAttributes>, Error> {
+        document: &ResourcesDocument<UserAttributes>,
+    ) -> Result<ResourcesDocument<UserAttributes>, Error> {
         Request::post("/api/v1/users")
             .authentication_headers()
             .json(document)?
@@ -73,7 +76,7 @@ impl ApiService {
             .await
     }
 
-    pub async fn get_user(&self, id: &str) -> Result<Document<UserAttributes>, Error> {
+    pub async fn get_user(&self, id: &str) -> Result<ResourcesDocument<UserAttributes>, Error> {
         Request::get(&format!("/api/v1/users/{id}"))
             .authentication_headers()
             .send()
@@ -85,8 +88,8 @@ impl ApiService {
     pub async fn update_user(
         &self,
         id: &str,
-        document: &Document<UserAttributes>,
-    ) -> Result<Document<UserAttributes>, Error> {
+        document: &ResourcesDocument<UserAttributes>,
+    ) -> Result<ResourcesDocument<UserAttributes>, Error> {
         Request::patch(&format!("/api/v1/users/{id}"))
             .authentication_headers()
             .json(document)?

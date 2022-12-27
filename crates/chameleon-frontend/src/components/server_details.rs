@@ -1,4 +1,4 @@
-use chameleon_protocol::{attributes::GameAttributes, jsonapi::Document};
+use chameleon_protocol::{attributes::GameAttributes, jsonapi::ResourcesDocument};
 use yew::prelude::*;
 
 use crate::services::Service;
@@ -11,7 +11,7 @@ pub struct ServerDetails {
 
 pub enum Msg {
     FetchFailure(gloo::net::Error),
-    FetchSuccess(Document<GameAttributes>),
+    FetchSuccess(ResourcesDocument<GameAttributes>),
 }
 
 #[derive(PartialEq, Properties)]
@@ -92,7 +92,7 @@ impl ServerDetails {
         true
     }
 
-    fn handle_fetch_success(&mut self, document: Document<GameAttributes>) -> bool {
+    fn handle_fetch_success(&mut self, document: ResourcesDocument<GameAttributes>) -> bool {
         if let Some(error) = document.errors {
             gloo::console::error!(format!("{error:?}"));
             return true;

@@ -9,8 +9,8 @@ use axum::{
 use chameleon_protocol::{
     attributes::GameAttributes,
     jsonapi::{
-        self, Document, Errors, Links, Pagination, ResourceIdentifiers,
-        ResourceIdentifiersDocument, Resources,
+        self, Errors, Links, Pagination, ResourceIdentifiers, ResourceIdentifiersDocument,
+        Resources, ResourcesDocument,
     },
 };
 
@@ -42,7 +42,7 @@ pub fn router() -> Router<AppState> {
 async fn create_one(
     State(app_state): State<AppState>,
     user_id: UserId,
-    Json(document): Json<Document<GameAttributes>>,
+    Json(document): Json<ResourcesDocument<GameAttributes>>,
 ) -> Result<Response, ApiError> {
     let resources = document.try_get_resources()?;
 
@@ -63,7 +63,7 @@ async fn create_one(
             Database::insert_game_player(&mut conn, &game).await?;
             conn.commit().await?;
 
-            let document = Document {
+            let document = ResourcesDocument {
                 data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
                 errors: None,
                 links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
@@ -88,7 +88,7 @@ async fn get_one(
     let game = Database::select_game(&app_state.postgres_pool, game_id).await?;
 
     if let Some(game) = game {
-        let document = Document {
+        let document = ResourcesDocument {
             data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
             errors: None,
             links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
@@ -96,7 +96,7 @@ async fn get_one(
 
         Ok((StatusCode::OK, Json(document)).into_response())
     } else {
-        let document = Document::<()> {
+        let document = ResourcesDocument::<()> {
             data: None,
             errors: Errors(vec![jsonapi::Error {
                 status: 404,
@@ -122,7 +122,7 @@ async fn get_many(
 
     let (games, after) = Database::query_game(&app_state.postgres_pool, keyset_pagination).await?;
 
-    let document = Document {
+    let document = ResourcesDocument {
         data: Resources::Collection(
             games
                 .iter()
@@ -161,10 +161,10 @@ async fn update_one(
     State(app_state): State<AppState>,
     user_id: UserId,
     Path(game_id): Path<GameId>,
-    Json(document): Json<Document<GameAttributes>>,
+    Json(document): Json<ResourcesDocument<GameAttributes>>,
 ) -> Result<Response, ApiError> {
     let Some(mut game) = Database::select_game(&app_state.postgres_pool, game_id).await? else {
-        let document = Document::<()> {
+        let document = ResourcesDocument::<()> {
             data: None,
             errors: Errors(vec![jsonapi::Error {
                 status: 404,
@@ -187,7 +187,7 @@ async fn update_one(
                 Database::update_game(&app_state.postgres_pool, &game).await?;
             };
 
-            let document = Document {
+            let document = ResourcesDocument {
                 data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
                 errors: None,
                 links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
@@ -205,7 +205,7 @@ async fn get_relationships_host(
     Path(game_id): Path<GameId>,
 ) -> Result<Response, ApiError> {
     let Some(game) = Database::select_game(&app_state.postgres_pool, game_id).await? else {
-        let document  = Document::not_found("game", "Game");
+        let document  = ResourcesDocument::not_found("game", "Game");
         return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
     };
 
@@ -235,16 +235,16 @@ async fn get_host(
     Path(game_id): Path<GameId>,
 ) -> Result<Response, ApiError> {
     let Some(game) = Database::select_game(&app_state.postgres_pool, game_id).await? else {
-        let document  = Document::not_found("game", "Game");
+        let document  = ResourcesDocument::not_found("game", "Game");
         return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
     };
 
     let Some(user) = Database::select_user(&app_state.postgres_pool, game.host).await? else {
-        let document  = Document::not_found("user", "User");
+        let document  = ResourcesDocument::not_found("user", "User");
         return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
     };
 
-    let document = Document {
+    let document = ResourcesDocument {
         data: Resources::Individual(user.to_resource(Variation::Nested(super::api_v1_users::PATH)))
             .into(),
         errors: None,

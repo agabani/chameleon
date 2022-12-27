@@ -7,7 +7,7 @@ use axum::{
 };
 use chameleon_protocol::{
     attributes::UserAttributes,
-    jsonapi::{self, Document, Errors, Links, Resource, Resources, Source},
+    jsonapi::{self, Errors, Links, Resource, Resources, ResourcesDocument, Source},
 };
 
 use crate::{
@@ -31,7 +31,7 @@ pub fn router() -> Router<AppState> {
 async fn create_one(
     State(state): State<AppState>,
     local_id: LocalId,
-    Json(document): Json<Document<UserAttributes>>,
+    Json(document): Json<ResourcesDocument<UserAttributes>>,
 ) -> Result<Response, ApiError> {
     if Database::select_user_id_by_local_id(&state.postgres_pool, local_id)
         .await?
@@ -69,7 +69,7 @@ async fn create_one(
     Database::insert_local(&mut conn, local_id, user.id).await?;
     conn.commit().await?;
 
-    let document = Document {
+    let document = ResourcesDocument {
         data: Resources::Individual(Resource {
             id: user.id.0.to_string().into(),
             type_: "user".to_string().into(),
@@ -102,7 +102,7 @@ async fn get_one(
     let user = Database::select_user(&state.postgres_pool, id).await?;
 
     if let Some(user) = user {
-        let document = Document {
+        let document = ResourcesDocument {
             data: Resources::Individual(user.to_resource(Variation::Root(PATH))).into(),
             errors: None,
             links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),
@@ -110,7 +110,7 @@ async fn get_one(
 
         Ok((StatusCode::OK, Json(document)).into_response())
     } else {
-        let document = Document::<()> {
+        let document = ResourcesDocument::<()> {
             data: None,
             errors: Errors(vec![jsonapi::Error {
                 status: 404,
@@ -131,7 +131,7 @@ async fn update_one(
     State(state): State<AppState>,
     user_id: UserId,
     Path(id): Path<UserId>,
-    Json(document): Json<Document<UserAttributes>>,
+    Json(document): Json<ResourcesDocument<UserAttributes>>,
 ) -> Result<Response, ApiError> {
     if user_id != id {
         return Err(ApiError::JsonApi(
@@ -163,7 +163,7 @@ async fn update_one(
         Database::update_user(&state.postgres_pool, &user).await?;
     }
 
-    let document = Document {
+    let document = ResourcesDocument {
         data: Resources::Individual(user.to_resource(Variation::Root(PATH))).into(),
         errors: None,
         links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),

@@ -3,18 +3,6 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Document<T> {
-    #[serde(rename = "data", skip_serializing_if = "Option::is_none")]
-    pub data: Option<Resources<T>>,
-
-    #[serde(rename = "errors", skip_serializing_if = "Option::is_none")]
-    pub errors: Option<Errors>,
-
-    #[serde(rename = "links", skip_serializing_if = "Option::is_none")]
-    pub links: Option<Links>,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Error {
     #[serde(rename = "status")]
     pub status: u16,
@@ -101,6 +89,18 @@ pub enum Resources<T> {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ResourcesDocument<T> {
+    #[serde(rename = "data", skip_serializing_if = "Option::is_none")]
+    pub data: Option<Resources<T>>,
+
+    #[serde(rename = "errors", skip_serializing_if = "Option::is_none")]
+    pub errors: Option<Errors>,
+
+    #[serde(rename = "links", skip_serializing_if = "Option::is_none")]
+    pub links: Option<Links>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Relationship {
     #[serde(rename = "data", skip_serializing_if = "Option::is_none")]
     pub data: Option<ResourceIdentifiers>,
@@ -122,41 +122,6 @@ pub struct Source {
 
     #[serde(rename = "pointer", skip_serializing_if = "Option::is_none")]
     pub pointer: Option<String>,
-}
-
-impl Document<()> {
-    pub fn not_found(_name: &str, display: &str) -> Self {
-        Document {
-            data: None,
-            errors: Errors(vec![Error {
-                status: 404,
-                source: None,
-                title: "Not Found".to_string().into(),
-                detail: format!("{display} does not exist").into(),
-            }])
-            .into(),
-            links: None,
-        }
-    }
-}
-
-impl<T> Document<T> {
-    pub fn try_get_resources(&self) -> Result<&Resources<T>, Box<Error>> {
-        self.data.as_ref().ok_or_else(|| {
-            Error {
-                status: 422,
-                source: Source {
-                    header: None,
-                    parameter: None,
-                    pointer: "/data".to_string().into(),
-                }
-                .into(),
-                title: "Invalid Member".to_string().into(),
-                detail: "Data must be present".to_string().into(),
-            }
-            .into()
-        })
-    }
 }
 
 impl Relationship {
@@ -251,41 +216,27 @@ impl<T> Resource<T> {
     }
 }
 
-impl<T> Resources<T> {
-    pub fn try_get_collection(&self) -> Result<&Vec<Resource<T>>, Box<Error>> {
-        match self {
-            Resources::Collection(resources) => Ok(resources),
-            Resources::Individual(_) => Err(Error {
+impl ResourceIdentifier {
+    pub fn try_get_field<A>(
+        &self,
+        accessor: impl Fn(&Self) -> Option<&A>,
+        name: &str,
+        display: &str,
+    ) -> Result<&A, Box<Error>> {
+        accessor(self).ok_or_else(|| {
+            Error {
                 status: 422,
                 source: Source {
                     header: None,
                     parameter: None,
-                    pointer: "/data".to_string().into(),
+                    pointer: format!("/data/relationships/*/data/{name}").into(),
                 }
                 .into(),
-                title: "Invalid Member".to_string().into(),
-                detail: "Data must be a resource array".to_string().into(),
+                title: "Invalid Field".to_string().into(),
+                detail: format!("{display} must be present").into(),
             }
-            .into()),
-        }
-    }
-
-    pub fn try_get_individual(&self) -> Result<&Resource<T>, Box<Error>> {
-        match self {
-            Resources::Collection(_) => Err(Error {
-                status: 422,
-                source: Source {
-                    header: None,
-                    parameter: None,
-                    pointer: "/data".to_string().into(),
-                }
-                .into(),
-                title: "Invalid Member".to_string().into(),
-                detail: "Data must be a resource object".to_string().into(),
-            }
-            .into()),
-            Resources::Individual(resource) => Ok(resource),
-        }
+            .into()
+        })
     }
 }
 
@@ -335,24 +286,73 @@ impl ResourceIdentifiers {
     }
 }
 
-impl ResourceIdentifier {
-    pub fn try_get_field<A>(
-        &self,
-        accessor: impl Fn(&Self) -> Option<&A>,
-        name: &str,
-        display: &str,
-    ) -> Result<&A, Box<Error>> {
-        accessor(self).ok_or_else(|| {
+impl<T> Resources<T> {
+    pub fn try_get_collection(&self) -> Result<&Vec<Resource<T>>, Box<Error>> {
+        match self {
+            Resources::Collection(resources) => Ok(resources),
+            Resources::Individual(_) => Err(Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: "/data".to_string().into(),
+                }
+                .into(),
+                title: "Invalid Member".to_string().into(),
+                detail: "Data must be a resource array".to_string().into(),
+            }
+            .into()),
+        }
+    }
+
+    pub fn try_get_individual(&self) -> Result<&Resource<T>, Box<Error>> {
+        match self {
+            Resources::Collection(_) => Err(Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: "/data".to_string().into(),
+                }
+                .into(),
+                title: "Invalid Member".to_string().into(),
+                detail: "Data must be a resource object".to_string().into(),
+            }
+            .into()),
+            Resources::Individual(resource) => Ok(resource),
+        }
+    }
+}
+
+impl ResourcesDocument<()> {
+    pub fn not_found(_name: &str, display: &str) -> Self {
+        ResourcesDocument {
+            data: None,
+            errors: Errors(vec![Error {
+                status: 404,
+                source: None,
+                title: "Not Found".to_string().into(),
+                detail: format!("{display} does not exist").into(),
+            }])
+            .into(),
+            links: None,
+        }
+    }
+}
+
+impl<T> ResourcesDocument<T> {
+    pub fn try_get_resources(&self) -> Result<&Resources<T>, Box<Error>> {
+        self.data.as_ref().ok_or_else(|| {
             Error {
                 status: 422,
                 source: Source {
                     header: None,
                     parameter: None,
-                    pointer: format!("/data/relationships/*/data/{name}").into(),
+                    pointer: "/data".to_string().into(),
                 }
                 .into(),
-                title: "Invalid Field".to_string().into(),
-                detail: format!("{display} must be present").into(),
+                title: "Invalid Member".to_string().into(),
+                detail: "Data must be present".to_string().into(),
             }
             .into()
         })

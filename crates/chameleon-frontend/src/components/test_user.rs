@@ -1,6 +1,6 @@
 use chameleon_protocol::{
     attributes::UserAttributes,
-    jsonapi::{Document, Resource, Resources},
+    jsonapi::{Resource, Resources, ResourcesDocument},
 };
 use web_sys::HtmlInputElement;
 use yew::prelude::*;
@@ -15,7 +15,7 @@ pub struct TestUser {
 
 pub enum Msg {
     SubmitClicked,
-    DocumentReceived(Document<UserAttributes>),
+    DocumentReceived(ResourcesDocument<UserAttributes>),
     UserUpdated(Option<User>),
 }
 
@@ -105,7 +105,7 @@ impl Component for TestUser {
                     .expect("Failed to find input")
                     .value();
 
-                let document: Document<UserAttributes> = Document {
+                let document: ResourcesDocument<UserAttributes> = ResourcesDocument {
                     data: Resources::Individual(Resource {
                         id: id.clone(),
                         type_: "user".to_string().into(),
