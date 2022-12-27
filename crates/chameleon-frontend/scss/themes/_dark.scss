@@ -81,6 +81,11 @@ $scroll-foreground: #a4a7a7;
   }
 
   .server-list {
+    &--load-more {
+      border-color: $highlight;
+      color: $highlight;
+    }
+
     &--scrolling {
       & {
         scrollbar-color: $scroll-foreground $scroll-background;

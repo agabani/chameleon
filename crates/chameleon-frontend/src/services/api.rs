@@ -44,9 +44,9 @@ impl ApiService {
 
     pub async fn query_games(
         &self,
-        url: Option<&str>,
+        url: Option<String>,
     ) -> Result<ResourcesDocument<GameAttributes>, Error> {
-        Request::get(url.unwrap_or("/api/v1/games"))
+        Request::get(&url.unwrap_or_else(|| "/api/v1/games".to_string()))
             .authentication_headers()
             .send()
             .await?

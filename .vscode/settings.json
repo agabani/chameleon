@@ -4,6 +4,7 @@
     "gloo",
     "jsonapi",
     "onclick",
+    "onscroll",
     "onsubmit",
     "routable",
     "rustup",

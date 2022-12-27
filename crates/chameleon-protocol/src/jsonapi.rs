@@ -129,8 +129,8 @@ impl Error {
         Error {
             status: 404,
             source: None,
-            title: "Not Found".to_string().into(),
-            detail: format!("{display} does not exist").into(),
+            title: Some("Not Found".to_string()),
+            detail: Some(format!("{display} does not exist")),
         }
     }
 }
@@ -141,18 +141,16 @@ impl Relationship {
         name: &str,
     ) -> Result<&ResourceIdentifiers, Box<Error>> {
         self.data.as_ref().ok_or_else(|| {
-            Error {
+            Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: format!("/data/relationship/{name}/data").into(),
-                }
-                .into(),
-                title: "Invalid Member".to_string().into(),
-                detail: "Data must be present".to_string().into(),
-            }
-            .into()
+                    pointer: Some(format!("/data/relationship/{name}/data")),
+                }),
+                title: Some("Invalid Member".to_string()),
+                detail: Some("Data must be present".to_string()),
+            })
         })
     }
 }
@@ -165,18 +163,16 @@ impl<T> Resource<T> {
         display: &str,
     ) -> Result<&A, Box<Error>> {
         self.attributes.as_ref().and_then(accessor).ok_or_else(|| {
-            Error {
+            Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: format!("/data/attributes/{name}").into(),
-                }
-                .into(),
-                title: "Invalid Attribute".to_string().into(),
-                detail: format!("{display} must be present").into(),
-            }
-            .into()
+                    pointer: Some(format!("/data/attributes/{name}")),
+                }),
+                title: Some("Invalid Attribute".to_string()),
+                detail: Some(format!("{display} must be present")),
+            })
         })
     }
 
@@ -187,18 +183,16 @@ impl<T> Resource<T> {
         display: &str,
     ) -> Result<&A, Box<Error>> {
         accessor(self).ok_or_else(|| {
-            Error {
+            Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: format!("/data/{name}").into(),
-                }
-                .into(),
-                title: "Invalid Field".to_string().into(),
-                detail: format!("{display} must be present").into(),
-            }
-            .into()
+                    pointer: Some(format!("/data/{name}")),
+                }),
+                title: Some("Invalid Field".to_string()),
+                detail: Some(format!("{display} must be present")),
+            })
         })
     }
 
@@ -211,18 +205,16 @@ impl<T> Resource<T> {
             .as_ref()
             .and_then(|r| r.0.get(name))
             .ok_or_else(|| {
-                Error {
+                Box::new(Error {
                     status: 422,
-                    source: Source {
+                    source: Some(Source {
                         header: None,
                         parameter: None,
-                        pointer: format!("/data/relationships/{name}").into(),
-                    }
-                    .into(),
-                    title: "Invalid Attribute".to_string().into(),
-                    detail: format!("{display} must be present").into(),
-                }
-                .into()
+                        pointer: Some(format!("/data/relationships/{name}")),
+                    }),
+                    title: Some("Invalid Attribute".to_string()),
+                    detail: Some(format!("{display} must be present")),
+                })
             })
     }
 }
@@ -235,18 +227,16 @@ impl ResourceIdentifier {
         display: &str,
     ) -> Result<&A, Box<Error>> {
         accessor(self).ok_or_else(|| {
-            Error {
+            Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: format!("/data/relationships/*/data/{name}").into(),
-                }
-                .into(),
-                title: "Invalid Field".to_string().into(),
-                detail: format!("{display} must be present").into(),
-            }
-            .into()
+                    pointer: Some(format!("/data/relationships/*/data/{name}")),
+                }),
+                title: Some("Invalid Field".to_string()),
+                detail: Some(format!("{display} must be present")),
+            })
         })
     }
 }
@@ -259,18 +249,16 @@ impl ResourceIdentifiers {
     ) -> Result<&Vec<ResourceIdentifier>, Box<Error>> {
         match self {
             ResourceIdentifiers::Collection(resources) => Ok(resources),
-            ResourceIdentifiers::Individual(_) => Err(Error {
+            ResourceIdentifiers::Individual(_) => Err(Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: format!("/data/relationships/{name}").into(),
-                }
-                .into(),
-                title: "Invalid Relationship".to_string().into(),
-                detail: format!("{display} must be a resource identifier array").into(),
-            }
-            .into()),
+                    pointer: Some(format!("/data/relationships/{name}")),
+                }),
+                title: Some("Invalid Relationship".to_string()),
+                detail: Some(format!("{display} must be a resource identifier array")),
+            })),
         }
     }
 
@@ -280,18 +268,16 @@ impl ResourceIdentifiers {
         display: &str,
     ) -> Result<&ResourceIdentifier, Box<Error>> {
         match self {
-            ResourceIdentifiers::Collection(_) => Err(Error {
+            ResourceIdentifiers::Collection(_) => Err(Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: format!("/data/relationships/{name}").into(),
-                }
-                .into(),
-                title: "Invalid Relationship".to_string().into(),
-                detail: format!("{display} must be a resource identifier object").into(),
-            }
-            .into()),
+                    pointer: Some(format!("/data/relationships/{name}")),
+                }),
+                title: Some("Invalid Relationship".to_string()),
+                detail: Some(format!("{display} must be a resource identifier object")),
+            })),
             ResourceIdentifiers::Individual(resource) => Ok(resource),
         }
     }
@@ -301,35 +287,31 @@ impl<T> Resources<T> {
     pub fn try_get_collection(&self) -> Result<&Vec<Resource<T>>, Box<Error>> {
         match self {
             Resources::Collection(resources) => Ok(resources),
-            Resources::Individual(_) => Err(Error {
+            Resources::Individual(_) => Err(Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: "/data".to_string().into(),
-                }
-                .into(),
-                title: "Invalid Member".to_string().into(),
-                detail: "Data must be a resource array".to_string().into(),
-            }
-            .into()),
+                    pointer: Some("/data".to_string()),
+                }),
+                title: Some("Invalid Member".to_string()),
+                detail: Some("Data must be a resource array".to_string()),
+            })),
         }
     }
 
     pub fn try_get_individual(&self) -> Result<&Resource<T>, Box<Error>> {
         match self {
-            Resources::Collection(_) => Err(Error {
+            Resources::Collection(_) => Err(Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: "/data".to_string().into(),
-                }
-                .into(),
-                title: "Invalid Member".to_string().into(),
-                detail: "Data must be a resource object".to_string().into(),
-            }
-            .into()),
+                    pointer: Some("/data".to_string()),
+                }),
+                title: Some("Invalid Member".to_string()),
+                detail: Some("Data must be a resource object".to_string()),
+            })),
             Resources::Individual(resource) => Ok(resource),
         }
     }
@@ -339,33 +321,48 @@ impl ResourcesDocument<()> {
     pub fn not_found(_name: &str, display: &str) -> Self {
         ResourcesDocument {
             data: None,
-            errors: Errors(vec![Error {
+            errors: Some(Errors(vec![Error {
                 status: 404,
                 source: None,
-                title: "Not Found".to_string().into(),
-                detail: format!("{display} does not exist").into(),
-            }])
-            .into(),
+                title: Some("Not Found".to_string()),
+                detail: Some(format!("{display} does not exist")),
+            }])),
             links: None,
         }
     }
 }
 
 impl<T> ResourcesDocument<T> {
+    pub fn try_get_link(&self, name: &str, display: &str) -> Result<&String, Box<Error>> {
+        self.links
+            .as_ref()
+            .and_then(|links| links.0.get(name))
+            .ok_or_else(|| {
+                Box::new(Error {
+                    status: 422,
+                    source: Some(Source {
+                        header: None,
+                        parameter: None,
+                        pointer: Some(format!("/links/{name}")),
+                    }),
+                    title: Some("Invalid Link".to_string()),
+                    detail: Some(format!("{display} must be present")),
+                })
+            })
+    }
+
     pub fn try_get_resources(&self) -> Result<&Resources<T>, Box<Error>> {
         self.data.as_ref().ok_or_else(|| {
-            Error {
+            Box::new(Error {
                 status: 422,
-                source: Source {
+                source: Some(Source {
                     header: None,
                     parameter: None,
-                    pointer: "/data".to_string().into(),
-                }
-                .into(),
-                title: "Invalid Member".to_string().into(),
-                detail: "Data must be present".to_string().into(),
-            }
-            .into()
+                    pointer: Some("/data".to_string()),
+                }),
+                title: Some("Invalid Member".to_string()),
+                detail: Some("Data must be present".to_string()),
+            })
         })
     }
 }
