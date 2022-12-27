@@ -14,6 +14,7 @@ use crate::{
     database::Database,
     domain::{LocalId, User, UserId},
     error::ApiError,
+    jsonapi::{ToJsonApi, Variation},
     AppState,
 };
 
@@ -102,17 +103,7 @@ async fn get_one(
 
     if let Some(user) = user {
         let document = Document {
-            data: Resources::Individual(Resource {
-                id: user.id.0.to_string().into(),
-                type_: "user".to_string().into(),
-                attributes: UserAttributes {
-                    name: user.name.into(),
-                }
-                .into(),
-                links: None,
-                relationships: None,
-            })
-            .into(),
+            data: Resources::Individual(user.to_resource(Variation::Individual(PATH))).into(),
             errors: None,
             links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),
         };
@@ -173,17 +164,7 @@ async fn update_one(
     }
 
     let document = Document {
-        data: Resources::Individual(Resource {
-            id: user.id.0.to_string().into(),
-            type_: "user".to_string().into(),
-            attributes: UserAttributes {
-                name: user.name.into(),
-            }
-            .into(),
-            links: None,
-            relationships: None,
-        })
-        .into(),
+        data: Resources::Individual(user.to_resource(Variation::Individual(PATH))).into(),
         errors: None,
         links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),
     };

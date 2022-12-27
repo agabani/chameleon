@@ -1,6 +1,7 @@
 use chameleon_protocol::jsonapi::Resource;
 
 mod game;
+mod user;
 
 pub trait ToJsonApi {
     type Attributes;
@@ -10,6 +11,6 @@ pub trait ToJsonApi {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Variation<'a> {
-    Individual(&'a str),
     Collection(&'a str),
+    Individual(&'a str),
 }
