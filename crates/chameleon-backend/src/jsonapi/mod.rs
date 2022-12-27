@@ -11,6 +11,6 @@ pub trait ToJsonApi {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Variation<'a> {
-    Collection(&'a str),
-    Individual(&'a str),
+    Nested(&'a str),
+    Root(&'a str),
 }

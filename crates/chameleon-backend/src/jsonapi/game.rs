@@ -22,10 +22,10 @@ impl ToJsonApi for Game {
             }
             .into(),
             links: match variation {
-                Variation::Individual(_) => None,
-                Variation::Collection(base) => {
+                Variation::Nested(base) => {
                     Links([("self".to_string(), format!("{base}/{}", self.id.0))].into()).into()
                 }
+                Variation::Root(_) => None,
             },
             relationships: Relationships(
                 [(
@@ -41,8 +41,7 @@ impl ToJsonApi for Game {
                                 (
                                     "self".to_string(),
                                     match variation {
-                                        Variation::Individual(base)
-                                        | Variation::Collection(base) => {
+                                        Variation::Nested(base) | Variation::Root(base) => {
                                             format!("{base}/{}/relationships/host", self.id.0)
                                         }
                                     },
@@ -50,8 +49,7 @@ impl ToJsonApi for Game {
                                 (
                                     "related".to_string(),
                                     match variation {
-                                        Variation::Individual(base)
-                                        | Variation::Collection(base) => {
+                                        Variation::Nested(base) | Variation::Root(base) => {
                                             format!("{base}/{}/host", self.id.0)
                                         }
                                     },

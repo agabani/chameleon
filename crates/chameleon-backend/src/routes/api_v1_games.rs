@@ -35,10 +35,7 @@ pub fn router() -> Router<AppState> {
             "/:game_id/relationships/host",
             patch(|| async { StatusCode::NOT_IMPLEMENTED.into_response() }),
         )
-        .route(
-            "/:game_id/host",
-            get(|| async { StatusCode::NOT_IMPLEMENTED.into_response() }),
-        )
+        .route("/:game_id/host", get(get_host))
 }
 
 #[tracing::instrument(skip(app_state))]
@@ -67,7 +64,7 @@ async fn create_one(
             conn.commit().await?;
 
             let document = Document {
-                data: Resources::Individual(game.to_resource(Variation::Individual(PATH))).into(),
+                data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
                 errors: None,
                 links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
             };
@@ -92,7 +89,7 @@ async fn get_one(
 
     if let Some(game) = game {
         let document = Document {
-            data: Resources::Individual(game.to_resource(Variation::Individual(PATH))).into(),
+            data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
             errors: None,
             links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
         };
@@ -129,7 +126,7 @@ async fn get_many(
         data: Resources::Collection(
             games
                 .iter()
-                .map(|game| game.to_resource(Variation::Collection(PATH)))
+                .map(|game| game.to_resource(Variation::Nested(PATH)))
                 .collect::<Vec<_>>(),
         )
         .into(),
@@ -191,7 +188,7 @@ async fn update_one(
             };
 
             let document = Document {
-                data: Resources::Individual(game.to_resource(Variation::Individual(PATH))).into(),
+                data: Resources::Individual(game.to_resource(Variation::Root(PATH))).into(),
                 errors: None,
                 links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
             };
@@ -199,6 +196,32 @@ async fn update_one(
             Ok((StatusCode::OK, Json(document)).into_response())
         }
     }
+}
+
+#[tracing::instrument(skip(app_state))]
+async fn get_host(
+    State(app_state): State<AppState>,
+    local_id: LocalId,
+    Path(game_id): Path<GameId>,
+) -> Result<Response, ApiError> {
+    let Some(game) = Database::select_game(&app_state.postgres_pool, game_id).await? else {
+        let document  = Document::not_found("game", "Game");
+        return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
+    };
+
+    let Some(user) = Database::select_user(&app_state.postgres_pool, game.host).await? else {
+        let document  = Document::not_found("user", "User");
+        return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
+    };
+
+    let document = Document {
+        data: Resources::Individual(user.to_resource(Variation::Nested(super::api_v1_users::PATH)))
+            .into(),
+        errors: None,
+        links: Links([("self".to_string(), format!("{PATH}/{}/host", game_id.0))].into()).into(),
+    };
+
+    Ok((StatusCode::OK, Json(document)).into_response())
 }
 
 impl Game {

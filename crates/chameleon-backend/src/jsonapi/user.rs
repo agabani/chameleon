@@ -19,10 +19,10 @@ impl ToJsonApi for User {
             }
             .into(),
             links: match variation {
-                Variation::Collection(path) => {
+                Variation::Nested(path) => {
                     Links([("self".to_string(), format!("{path}/{}", self.id.0))].into()).into()
                 }
-                Variation::Individual(_) => None,
+                Variation::Root(_) => None,
             },
             relationships: None,
         }

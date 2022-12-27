@@ -103,7 +103,7 @@ async fn get_one(
 
     if let Some(user) = user {
         let document = Document {
-            data: Resources::Individual(user.to_resource(Variation::Individual(PATH))).into(),
+            data: Resources::Individual(user.to_resource(Variation::Root(PATH))).into(),
             errors: None,
             links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),
         };
@@ -164,7 +164,7 @@ async fn update_one(
     }
 
     let document = Document {
-        data: Resources::Individual(user.to_resource(Variation::Individual(PATH))).into(),
+        data: Resources::Individual(user.to_resource(Variation::Root(PATH))).into(),
         errors: None,
         links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),
     };

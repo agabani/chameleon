@@ -112,6 +112,22 @@ pub struct Source {
     pub pointer: Option<String>,
 }
 
+impl Document<()> {
+    pub fn not_found(_name: &str, display: &str) -> Self {
+        Document {
+            data: None,
+            errors: Errors(vec![Error {
+                status: 404,
+                source: None,
+                title: "Not Found".to_string().into(),
+                detail: format!("{display} does not exist").into(),
+            }])
+            .into(),
+            links: None,
+        }
+    }
+}
+
 impl<T> Document<T> {
     pub fn try_get_resources(&self) -> Result<&Resources<T>, Box<Error>> {
         self.data.as_ref().ok_or_else(|| {
