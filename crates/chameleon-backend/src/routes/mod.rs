@@ -17,8 +17,8 @@ trait ToResource {
 
     fn to_resource(&self, variation: Variation) -> Resource<Self::Attributes> {
         Resource {
-            id: self.__id().into(),
-            type_: self.__type().into(),
+            id: Some(self.__id()),
+            type_: Some(self.__type()),
             attributes: self.__attributes(),
             links: self.__links(variation),
             relationships: self.__relationships(),
@@ -31,14 +31,13 @@ trait ToResource {
 
     fn __links(&self, variation: Variation) -> Option<Links> {
         match variation {
-            Variation::Nested => Links(
+            Variation::Nested => Some(Links(
                 [(
                     "self".to_string(),
                     format!("{}/{}", Self::PATH, self.__id()),
                 )]
                 .into(),
-            )
-            .into(),
+            )),
             Variation::Root => None,
         }
     }
@@ -55,8 +54,8 @@ trait ToResourceIdentifier {
 
     fn to_resource_identifier(&self) -> ResourceIdentifier {
         ResourceIdentifier {
-            id: self.__id().into(),
-            type_: self.__type().into(),
+            id: Some(self.__id()),
+            type_: Some(self.__type()),
         }
     }
 
