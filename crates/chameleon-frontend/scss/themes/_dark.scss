@@ -47,6 +47,26 @@ $scroll-foreground: #a4a7a7;
     }
   }
 
+  .host {
+    &--input {
+      border-color: $highlight;
+      color: $highlight;
+    }
+
+    &--label {
+      color: $light;
+    }
+
+    &--submit {
+      border-color: $highlight;
+      color: $highlight;
+    }
+
+    &--title {
+      color: $highlight;
+    }
+  }
+
   .top-menu {
     background-color: $background;
 

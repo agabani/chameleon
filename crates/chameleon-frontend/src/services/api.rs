@@ -54,6 +54,19 @@ impl ApiService {
             .await
     }
 
+    pub async fn create_game(
+        &self,
+        document: &ResourcesDocument<GameAttributes>,
+    ) -> Result<ResourcesDocument<GameAttributes>, Error> {
+        Request::post("/api/v1/games")
+            .authentication_headers()
+            .json(document)?
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn get_game(&self, id: &str) -> Result<ResourcesDocument<GameAttributes>, Error> {
         Request::get(&format!("/api/v1/games/{id}"))
             .authentication_headers()
