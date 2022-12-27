@@ -10,25 +10,35 @@ use super::server_list_item::ServerListItem;
 
 pub struct ServerList {
     games: Vec<Resource<GameAttributes>>,
+    selected: Option<String>,
 }
 
 pub enum Msg {
     FetchFailure(gloo::net::Error),
     FetchSuccess(Document<GameAttributes>),
+    ItemClicked(String),
+}
+
+#[derive(PartialEq, Properties)]
+pub struct Props {
+    pub onclick: Callback<String>,
 }
 
 impl Component for ServerList {
     type Message = Msg;
 
-    type Properties = ();
+    type Properties = Props;
 
     fn create(ctx: &Context<Self>) -> Self {
-        let this = Self { games: Vec::new() };
+        let this = Self {
+            games: Vec::new(),
+            selected: None,
+        };
         this.fetch(ctx);
         this
     }
 
-    fn view(&self, _ctx: &Context<Self>) -> Html {
+    fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
             <div class="server-list">
                 <div class="server-list--header">
@@ -37,21 +47,27 @@ impl Component for ServerList {
                         details=""
                         players="players"
                         password=false
-                        selected=false />
+                        selected=false
+                        onclick={ Callback::from(|_| {}) } />
                 </div>
                 <div class="server-list--body server-list--scrolling">
                 {
                     self.games.iter().map(|game| {
-                        let id = game.id.as_ref().unwrap().clone();
+                        let id = game.id.as_ref().unwrap();
                         let name = game.attributes.as_ref().and_then(|a| a.name.as_ref()).unwrap().clone();
+
+                        let id_ = id.clone();
+                        let onclick = ctx.link().callback(move |_| Msg::ItemClicked(id_.clone()));
+
                         html! {
                             <ServerListItem
-                                key={id}
+                                key={id.clone()}
                                 name={name}
                                 details="..."
                                 players="..."
                                 password=false
-                                selected=false />
+                                selected={ if let Some(selected) = &self.selected { selected == id } else { false }}
+                                onclick={ onclick } />
                         }
                     }).collect::<Html>()
                 }
@@ -60,10 +76,15 @@ impl Component for ServerList {
         }
     }
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
+    fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::FetchFailure(error) => self.handle_fetch_failure(error),
             Msg::FetchSuccess(document) => self.handle_fetch_success(document),
+            Msg::ItemClicked(id) => {
+                ctx.props().onclick.emit(id.clone());
+                self.selected = Some(id);
+                true
+            }
         }
     }
 }

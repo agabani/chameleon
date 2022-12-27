@@ -4,6 +4,7 @@ pub struct ServerDetails {}
 
 #[derive(PartialEq, Properties)]
 pub struct Props {
+    pub id: AttrValue,
     pub name: AttrValue,
     pub host: AttrValue,
     pub modifiers: Vec<AttrValue>,

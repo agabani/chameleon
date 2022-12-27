@@ -9,6 +9,7 @@ pub struct Props {
     pub details: AttrValue,
     pub players: AttrValue,
     pub password: bool,
+    pub onclick: Callback<MouseEvent>,
 }
 
 impl Component for ServerListItem {
@@ -22,7 +23,9 @@ impl Component for ServerListItem {
 
     fn view(&self, ctx: &Context<Self>) -> Html {
         html! {
-            <div class={classes!("server-list-item", if ctx.props().selected {"selected"} else {""})}>
+            <div
+                class={classes!("server-list-item", if ctx.props().selected {"selected"} else {""})}
+                onclick={&ctx.props().onclick}>
                 <div class="server-list-item--meta">
                     <div class="server-list-item--name">{ &ctx.props().name }</div>
                     <div class="server-list-item--detail">{ &ctx.props().details }</div>
