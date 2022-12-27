@@ -1,4 +1,9 @@
-use chameleon_protocol::{attributes::UserAttributes, http, jsonapi::Document, openid_connect};
+use chameleon_protocol::{
+    attributes::{GameAttributes, UserAttributes},
+    http,
+    jsonapi::Document,
+    openid_connect,
+};
 use gloo::{
     console,
     net::{http::Request, Error},
@@ -35,6 +40,15 @@ impl ApiService {
             200 => Ok(()),
             status => todo!("Unexpected status code: {status}"),
         }
+    }
+
+    pub async fn query_games(&self, url: Option<&str>) -> Result<Document<GameAttributes>, Error> {
+        Request::get(url.unwrap_or("/api/v1/games"))
+            .authentication_headers()
+            .send()
+            .await?
+            .json()
+            .await
     }
 
     pub async fn create_user(

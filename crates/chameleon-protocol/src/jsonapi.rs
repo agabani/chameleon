@@ -176,6 +176,24 @@ impl<T> Resource<T> {
 
 impl<T> Resources<T> {
     #[allow(clippy::result_large_err)]
+    pub fn try_get_collection(&self) -> Result<&Vec<Resource<T>>, Error> {
+        match self {
+            Resources::Collection(resources) => Ok(resources),
+            Resources::Individual(_) => Err(Error {
+                status: 422,
+                source: Source {
+                    header: None,
+                    parameter: None,
+                    pointer: "/data".to_string().into(),
+                }
+                .into(),
+                title: "Invalid Member".to_string().into(),
+                detail: "Data must be a resource array".to_string().into(),
+            }),
+        }
+    }
+
+    #[allow(clippy::result_large_err)]
     pub fn try_get_individual(&self) -> Result<&Resource<T>, Error> {
         match self {
             Resources::Collection(_) => Err(Error {
