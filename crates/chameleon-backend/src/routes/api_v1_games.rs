@@ -8,14 +8,17 @@ use axum::{
 };
 use chameleon_protocol::{
     attributes::GameAttributes,
-    jsonapi::{self, Document, Errors, Links, Pagination, Resources},
+    jsonapi::{
+        self, Document, Errors, Links, Pagination, ResourceIdentifiers,
+        ResourceIdentifiersDocument, Resources,
+    },
 };
 
 use crate::{
     database::Database,
     domain::{Game, GameId, LocalId, UserId},
     error::ApiError,
-    jsonapi::{ToJsonApi, Variation},
+    jsonapi::{ToJsonApi, ToResourceIdentifier, Variation},
     AppState,
 };
 
@@ -27,10 +30,7 @@ pub fn router() -> Router<AppState> {
         .route("/", post(create_one))
         .route("/:game_id", get(get_one))
         .route("/:game_id", patch(update_one))
-        .route(
-            "/:game_id/relationships/host",
-            get(|| async { StatusCode::NOT_IMPLEMENTED.into_response() }),
-        )
+        .route("/:game_id/relationships/host", get(get_relationships_host))
         .route(
             "/:game_id/relationships/host",
             patch(|| async { StatusCode::NOT_IMPLEMENTED.into_response() }),
@@ -196,6 +196,36 @@ async fn update_one(
             Ok((StatusCode::OK, Json(document)).into_response())
         }
     }
+}
+
+#[tracing::instrument(skip(app_state))]
+async fn get_relationships_host(
+    State(app_state): State<AppState>,
+    local_id: LocalId,
+    Path(game_id): Path<GameId>,
+) -> Result<Response, ApiError> {
+    let Some(game) = Database::select_game(&app_state.postgres_pool, game_id).await? else {
+        let document  = Document::not_found("game", "Game");
+        return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
+    };
+
+    let document = ResourceIdentifiersDocument {
+        data: ResourceIdentifiers::Individual(game.host.to_resource_identifier()).into(),
+        errors: None,
+        links: Links(
+            [
+                (
+                    "self".to_string(),
+                    format!("{PATH}/{}/relationships/host", game.id.0),
+                ),
+                ("related".to_string(), format!("{PATH}/{}/host", game.id.0)),
+            ]
+            .into(),
+        )
+        .into(),
+    };
+
+    Ok((StatusCode::OK, Json(document)).into_response())
 }
 
 #[tracing::instrument(skip(app_state))]

@@ -82,6 +82,18 @@ pub enum ResourceIdentifiers {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ResourceIdentifiersDocument {
+    #[serde(rename = "data", skip_serializing_if = "Option::is_none")]
+    pub data: Option<ResourceIdentifiers>,
+
+    #[serde(rename = "errors", skip_serializing_if = "Option::is_none")]
+    pub errors: Option<Errors>,
+
+    #[serde(rename = "links", skip_serializing_if = "Option::is_none")]
+    pub links: Option<Links>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Resources<T> {
     Collection(Vec<Resource<T>>),

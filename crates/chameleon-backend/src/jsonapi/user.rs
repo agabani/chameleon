@@ -1,11 +1,11 @@
 use chameleon_protocol::{
     attributes::UserAttributes,
-    jsonapi::{Links, Resource},
+    jsonapi::{Links, Resource, ResourceIdentifier},
 };
 
-use crate::domain::User;
+use crate::domain::{User, UserId};
 
-use super::{ToJsonApi, Variation};
+use super::{ToJsonApi, ToResourceIdentifier, Variation};
 
 impl ToJsonApi for User {
     type Attributes = UserAttributes;
@@ -25,6 +25,15 @@ impl ToJsonApi for User {
                 Variation::Root(_) => None,
             },
             relationships: None,
+        }
+    }
+}
+
+impl ToResourceIdentifier for UserId {
+    fn to_resource_identifier(&self) -> ResourceIdentifier {
+        ResourceIdentifier {
+            id: self.0.to_string().into(),
+            type_: "user".to_string().into(),
         }
     }
 }
