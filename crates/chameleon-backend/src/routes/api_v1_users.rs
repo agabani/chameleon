@@ -7,18 +7,21 @@ use axum::{
 };
 use chameleon_protocol::{
     attributes::UserAttributes,
-    jsonapi::{self, Errors, Links, Resource, Resources, ResourcesDocument, Source},
+    jsonapi::{self, Links, Resources, ResourcesDocument, Source},
 };
 
 use crate::{
     database::Database,
     domain::{LocalId, User, UserId},
     error::ApiError,
-    jsonapi::{ToResource, Variation},
     AppState,
 };
 
+use super::{ToResource, ToResourceIdentifier, Variation};
+
 pub const PATH: &str = "/api/v1/users";
+
+const TYPE: &str = "user";
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -37,22 +40,16 @@ async fn create_one(
         .await?
         .is_some()
     {
-        return Err(ApiError::JsonApi(
-            jsonapi::Error {
-                status: 403,
-                source: Source {
-                    header: "x-chameleon-local-id".to_string().into(),
-                    parameter: None,
-                    pointer: None,
-                }
-                .into(),
-                title: "Forbidden".to_string().into(),
-                detail: "`x-chameleon-local-id` is already associated with a user"
-                    .to_string()
-                    .into(),
-            }
-            .into(),
-        ));
+        return Err(ApiError::JsonApi(Box::new(jsonapi::Error {
+            status: 403,
+            source: Some(Source {
+                header: Some("x-chameleon-local-id".to_string()),
+                parameter: None,
+                pointer: None,
+            }),
+            title: Some("Forbidden".to_string()),
+            detail: Some("`x-chameleon-local-id` is already associated with a user".to_string()),
+        })));
     }
 
     let user = User {
@@ -70,19 +67,11 @@ async fn create_one(
     conn.commit().await?;
 
     let document = ResourcesDocument {
-        data: Resources::Individual(Resource {
-            id: user.id.0.to_string().into(),
-            type_: "user".to_string().into(),
-            attributes: UserAttributes {
-                name: user.name.into(),
-            }
-            .into(),
-            links: None,
-            relationships: None,
-        })
-        .into(),
+        data: Some(Resources::Individual(user.to_resource(Variation::Root))),
         errors: None,
-        links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),
+        links: Some(Links(
+            [("self".to_string(), format!("{PATH}/{}", user.id.0))].into(),
+        )),
     };
 
     Ok((
@@ -99,31 +88,19 @@ async fn get_one(
     local_id: LocalId,
     Path(id): Path<UserId>,
 ) -> Result<Response, ApiError> {
-    let user = Database::select_user(&state.postgres_pool, id).await?;
+    let user = Database::select_user(&state.postgres_pool, id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
 
-    if let Some(user) = user {
-        let document = ResourcesDocument {
-            data: Resources::Individual(user.to_resource(Variation::Root)).into(),
-            errors: None,
-            links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),
-        };
+    let document = ResourcesDocument {
+        data: Some(Resources::Individual(user.to_resource(Variation::Root))),
+        errors: None,
+        links: Some(Links(
+            [("self".to_string(), format!("{PATH}/{}", user.id.0))].into(),
+        )),
+    };
 
-        Ok((StatusCode::OK, Json(document)).into_response())
-    } else {
-        let document = ResourcesDocument::<()> {
-            data: None,
-            errors: Errors(vec![jsonapi::Error {
-                status: 404,
-                source: None,
-                title: "Not Found".to_string().into(),
-                detail: format!("User {} does not exist", id.0).into(),
-            }])
-            .into(),
-            links: None,
-        };
-
-        Ok((StatusCode::NOT_FOUND, Json(document)).into_response())
-    }
+    Ok((StatusCode::OK, Json(document)).into_response())
 }
 
 #[tracing::instrument(skip(state))]
@@ -134,27 +111,17 @@ async fn update_one(
     Json(document): Json<ResourcesDocument<UserAttributes>>,
 ) -> Result<Response, ApiError> {
     if user_id != id {
-        return Err(ApiError::JsonApi(
-            jsonapi::Error {
-                status: 403,
-                source: None,
-                title: "Forbidden".to_string().into(),
-                detail: "You do not have sufficient permissions to update this user"
-                    .to_string()
-                    .into(),
-            }
-            .into(),
-        ));
+        return Err(ApiError::JsonApi(Box::new(jsonapi::Error {
+            status: 403,
+            source: None,
+            title: Some("Forbidden".to_string()),
+            detail: Some("You do not have sufficient permissions to update this user".to_string()),
+        })));
     }
 
-    let Some(mut user) = Database::select_user(&state.postgres_pool, id).await? else {
-        return Err(ApiError::JsonApi(jsonapi::Error {
-            status: 404,
-            source: None,
-            title: "Not Found".to_string().into(),
-            detail: "User does not exist".to_string().into()
-        }.into()));
-    };
+    let mut user = Database::select_user(&state.postgres_pool, id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
 
     let resource = document.try_get_resources()?.try_get_individual()?;
 
@@ -164,9 +131,11 @@ async fn update_one(
     }
 
     let document = ResourcesDocument {
-        data: Resources::Individual(user.to_resource(Variation::Root)).into(),
+        data: Some(Resources::Individual(user.to_resource(Variation::Root))),
         errors: None,
-        links: Links([("self".to_string(), format!("{PATH}/{}", user.id.0))].into()).into(),
+        links: Some(Links(
+            [("self".to_string(), format!("{PATH}/{}", user.id.0))].into(),
+        )),
     };
 
     Ok((StatusCode::OK, Json(document)).into_response())
@@ -178,5 +147,35 @@ impl User {
             id: self.id,
             name: attributes.name.as_ref().unwrap_or(&self.name).clone(),
         }
+    }
+}
+
+impl ToResource for User {
+    const PATH: &'static str = PATH;
+
+    const TYPE: &'static str = TYPE;
+
+    type Attributes = UserAttributes;
+
+    fn __attributes(&self) -> Option<Self::Attributes> {
+        Some(Self::Attributes {
+            name: Some(self.name.to_string()),
+        })
+    }
+
+    fn __id(&self) -> String {
+        self.id.0.to_string()
+    }
+
+    fn __relationships(&self) -> Option<chameleon_protocol::jsonapi::Relationships> {
+        None
+    }
+}
+
+impl ToResourceIdentifier for UserId {
+    const TYPE: &'static str = TYPE;
+
+    fn __id(&self) -> String {
+        self.0.to_string()
     }
 }

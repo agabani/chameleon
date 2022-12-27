@@ -124,6 +124,17 @@ pub struct Source {
     pub pointer: Option<String>,
 }
 
+impl Error {
+    pub fn not_found(_name: &str, display: &str) -> Self {
+        Error {
+            status: 404,
+            source: None,
+            title: "Not Found".to_string().into(),
+            detail: format!("{display} does not exist").into(),
+        }
+    }
+}
+
 impl Relationship {
     pub fn try_get_resource_identifiers(
         &self,

@@ -9,8 +9,8 @@ use axum::{
 use chameleon_protocol::{
     attributes::GameAttributes,
     jsonapi::{
-        self, Errors, Links, Pagination, ResourceIdentifiers, ResourceIdentifiersDocument,
-        Resources, ResourcesDocument,
+        self, Links, Pagination, Relationship, Relationships, ResourceIdentifiers,
+        ResourceIdentifiersDocument, Resources, ResourcesDocument,
     },
 };
 
@@ -18,11 +18,13 @@ use crate::{
     database::Database,
     domain::{Game, GameId, LocalId, UserId},
     error::ApiError,
-    jsonapi::{ToResource, ToResourceIdentifier, Variation},
     AppState,
 };
 
+use super::{ToResource, ToResourceIdentifier, Variation};
+
 pub const PATH: &str = "/api/v1/games";
+const TYPE: &str = "game";
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -85,31 +87,19 @@ async fn get_one(
     local_id: LocalId,
     Path(game_id): Path<GameId>,
 ) -> Result<Response, ApiError> {
-    let game = Database::select_game(&app_state.postgres_pool, game_id).await?;
+    let game = Database::select_game(&app_state.postgres_pool, game_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("game", "Game"))))?;
 
-    if let Some(game) = game {
-        let document = ResourcesDocument {
-            data: Resources::Individual(game.to_resource(Variation::Root)).into(),
-            errors: None,
-            links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
-        };
+    let document = ResourcesDocument {
+        data: Some(Resources::Individual(game.to_resource(Variation::Root))),
+        errors: None,
+        links: Some(Links(
+            [("self".to_string(), format!("{PATH}/{}", game.id.0))].into(),
+        )),
+    };
 
-        Ok((StatusCode::OK, Json(document)).into_response())
-    } else {
-        let document = ResourcesDocument::<()> {
-            data: None,
-            errors: Errors(vec![jsonapi::Error {
-                status: 404,
-                source: None,
-                title: "Not Found".to_string().into(),
-                detail: format!("Game {} does not exist", game_id.0).into(),
-            }])
-            .into(),
-            links: None,
-        };
-
-        Ok((StatusCode::NOT_FOUND, Json(document)).into_response())
-    }
+    Ok((StatusCode::OK, Json(document)).into_response())
 }
 
 #[tracing::instrument(skip(app_state))]
@@ -123,15 +113,14 @@ async fn get_many(
     let (games, after) = Database::query_game(&app_state.postgres_pool, keyset_pagination).await?;
 
     let document = ResourcesDocument {
-        data: Resources::Collection(
+        data: Some(Resources::Collection(
             games
                 .iter()
                 .map(|game| game.to_resource(Variation::Nested))
                 .collect::<Vec<_>>(),
-        )
-        .into(),
+        )),
         errors: None,
-        links: Links(
+        links: Some(Links(
             [
                 (
                     "self".to_string(),
@@ -149,8 +138,7 @@ async fn get_many(
                 ),
             ]
             .into(),
-        )
-        .into(),
+        )),
     };
 
     Ok((StatusCode::OK, Json(document)).into_response())
@@ -163,21 +151,9 @@ async fn update_one(
     Path(game_id): Path<GameId>,
     Json(document): Json<ResourcesDocument<GameAttributes>>,
 ) -> Result<Response, ApiError> {
-    let Some(mut game) = Database::select_game(&app_state.postgres_pool, game_id).await? else {
-        let document = ResourcesDocument::<()> {
-            data: None,
-            errors: Errors(vec![jsonapi::Error {
-                status: 404,
-                source: None,
-                title: "Not Found".to_string().into(),
-                detail: format!("Game {} does not exist", game_id.0).into(),
-            }])
-            .into(),
-            links: None,
-        };
-
-        return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
-    };
+    let mut game = Database::select_game(&app_state.postgres_pool, game_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("game", "Game"))))?;
 
     match document.try_get_resources()? {
         Resources::Collection(_) => Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
@@ -188,9 +164,11 @@ async fn update_one(
             };
 
             let document = ResourcesDocument {
-                data: Resources::Individual(game.to_resource(Variation::Root)).into(),
+                data: Some(Resources::Individual(game.to_resource(Variation::Root))),
                 errors: None,
-                links: Links([("self".to_string(), format!("{PATH}/{}", game.id.0))].into()).into(),
+                links: Some(Links(
+                    [("self".to_string(), format!("{PATH}/{}", game.id.0))].into(),
+                )),
             };
 
             Ok((StatusCode::OK, Json(document)).into_response())
@@ -204,15 +182,16 @@ async fn get_relationships_host(
     local_id: LocalId,
     Path(game_id): Path<GameId>,
 ) -> Result<Response, ApiError> {
-    let Some(game) = Database::select_game(&app_state.postgres_pool, game_id).await? else {
-        let document  = ResourcesDocument::not_found("game", "Game");
-        return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
-    };
+    let game = Database::select_game(&app_state.postgres_pool, game_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("game", "Game"))))?;
 
     let document = ResourceIdentifiersDocument {
-        data: ResourceIdentifiers::Individual(game.host.to_resource_identifier()).into(),
+        data: Some(ResourceIdentifiers::Individual(
+            game.host.to_resource_identifier(),
+        )),
         errors: None,
-        links: Links(
+        links: Some(Links(
             [
                 (
                     "self".to_string(),
@@ -221,8 +200,7 @@ async fn get_relationships_host(
                 ("related".to_string(), format!("{PATH}/{}/host", game.id.0)),
             ]
             .into(),
-        )
-        .into(),
+        )),
     };
 
     Ok((StatusCode::OK, Json(document)).into_response())
@@ -234,20 +212,20 @@ async fn get_host(
     local_id: LocalId,
     Path(game_id): Path<GameId>,
 ) -> Result<Response, ApiError> {
-    let Some(game) = Database::select_game(&app_state.postgres_pool, game_id).await? else {
-        let document  = ResourcesDocument::not_found("game", "Game");
-        return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
-    };
+    let game = Database::select_game(&app_state.postgres_pool, game_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("game", "Game"))))?;
 
-    let Some(user) = Database::select_user(&app_state.postgres_pool, game.host).await? else {
-        let document  = ResourcesDocument::not_found("user", "User");
-        return Ok((StatusCode::NOT_FOUND, Json(document)).into_response());
-    };
+    let user = Database::select_user(&app_state.postgres_pool, game.host)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
 
     let document = ResourcesDocument {
-        data: Resources::Individual(user.to_resource(Variation::Nested)).into(),
+        data: Some(Resources::Individual(user.to_resource(Variation::Nested))),
         errors: None,
-        links: Links([("self".to_string(), format!("{PATH}/{}/host", game_id.0))].into()).into(),
+        links: Some(Links(
+            [("self".to_string(), format!("{PATH}/{}/host", game_id.0))].into(),
+        )),
     };
 
     Ok((StatusCode::OK, Json(document)).into_response())
@@ -260,5 +238,58 @@ impl Game {
             name: attributes.name.as_ref().unwrap_or(&self.name).clone(),
             host: self.host,
         }
+    }
+}
+
+impl ToResource for Game {
+    const PATH: &'static str = PATH;
+
+    const TYPE: &'static str = TYPE;
+
+    type Attributes = GameAttributes;
+
+    fn __attributes(&self) -> Option<Self::Attributes> {
+        Some(Self::Attributes {
+            name: Some(self.name.to_string()),
+        })
+    }
+
+    fn __id(&self) -> String {
+        self.id.0.to_string()
+    }
+
+    fn __relationships(&self) -> Option<Relationships> {
+        Some(Relationships(
+            [(
+                "host".to_string(),
+                Relationship {
+                    data: Some(ResourceIdentifiers::Individual(
+                        self.host.to_resource_identifier(),
+                    )),
+                    links: Some(Links(
+                        [
+                            (
+                                "self".to_string(),
+                                format!("{}/{}/relationships/host", Self::PATH, self.id.0),
+                            ),
+                            (
+                                "related".to_string(),
+                                format!("{}/{}/host", Self::PATH, self.id.0),
+                            ),
+                        ]
+                        .into(),
+                    )),
+                },
+            )]
+            .into(),
+        ))
+    }
+}
+
+impl ToResourceIdentifier for GameId {
+    const TYPE: &'static str = TYPE;
+
+    fn __id(&self) -> String {
+        self.0.to_string()
     }
 }
