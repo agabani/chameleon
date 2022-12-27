@@ -3,7 +3,7 @@ use chameleon_protocol::jsonapi::{Resource, ResourceIdentifier};
 mod game;
 mod user;
 
-pub trait ToJsonApi {
+pub trait ToResource {
     type Attributes;
 
     fn to_resource(&self, variation: Variation) -> Resource<Self::Attributes>;

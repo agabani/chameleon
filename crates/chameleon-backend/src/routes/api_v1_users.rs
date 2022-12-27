@@ -14,7 +14,7 @@ use crate::{
     database::Database,
     domain::{LocalId, User, UserId},
     error::ApiError,
-    jsonapi::{ToJsonApi, Variation},
+    jsonapi::{ToResource, Variation},
     AppState,
 };
 

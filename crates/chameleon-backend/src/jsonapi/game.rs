@@ -5,9 +5,9 @@ use chameleon_protocol::{
 
 use crate::domain::Game;
 
-use super::{ToJsonApi, Variation};
+use super::{ToResource, Variation};
 
-impl ToJsonApi for Game {
+impl ToResource for Game {
     type Attributes = GameAttributes;
 
     fn to_resource(

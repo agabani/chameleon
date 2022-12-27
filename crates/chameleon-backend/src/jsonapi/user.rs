@@ -5,9 +5,9 @@ use chameleon_protocol::{
 
 use crate::domain::{User, UserId};
 
-use super::{ToJsonApi, ToResourceIdentifier, Variation};
+use super::{ToResource, ToResourceIdentifier, Variation};
 
-impl ToJsonApi for User {
+impl ToResource for User {
     type Attributes = UserAttributes;
 
     fn to_resource(&self, variation: Variation) -> Resource<Self::Attributes> {
