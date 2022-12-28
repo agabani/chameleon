@@ -7,16 +7,21 @@ use yew::prelude::*;
 use yew_router::scope_ext::RouterScopeExt;
 
 use crate::{
-    components::top_menu::{Item, TopMenu},
+    components::{
+        top_menu::{Item, TopMenu},
+        user_signup::UserSignup,
+    },
     services::Service,
     Route,
 };
 
 pub struct Host {
+    authentication_required: bool,
     name: NodeRef,
 }
 
 pub enum Msg {
+    Authenticated,
     HostClicked,
     Success(ResourcesDocument<GameAttributes>),
     Failed(gloo::net::Error),
@@ -29,6 +34,7 @@ impl Component for Host {
 
     fn create(_ctx: &Context<Self>) -> Self {
         Self {
+            authentication_required: false,
             name: NodeRef::default(),
         }
     }
@@ -51,10 +57,22 @@ impl Component for Host {
                                 <input class="host--input" ref={ self.name.clone() } />
                             </div>
                             <div>
-                                <button class="host--submit">{ "Host" }</button>
+                                <button class="host--submit" disabled={self.authentication_required}>{ "Host" }</button>
                             </div>
                         </form>
                     </div>
+                    {
+                        if self.authentication_required {
+                            html! {
+                                <>
+                                    <div class="host--title">{ "Authentication Required" }</div>
+                                    <UserSignup signup_success={ctx.link().callback(|_| Msg::Authenticated)} />
+                                </>
+                            }
+                        } else {
+                            html! ()
+                        }
+                    }
                 </div>
             </div>
         }
@@ -62,9 +80,9 @@ impl Component for Host {
 
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
-            Msg::HostClicked => self.handle_submit(ctx),
+            Msg::Authenticated | Msg::HostClicked => self.handle_submit(ctx),
             Msg::Failed(error) => Self::handle_failed(ctx, &error),
-            Msg::Success(document) => Self::handle_success(ctx, document),
+            Msg::Success(document) => self.handle_success(ctx, document),
         }
     }
 }
@@ -104,9 +122,18 @@ impl Host {
         true
     }
 
-    fn handle_success(ctx: &Context<Self>, document: ResourcesDocument<GameAttributes>) -> bool {
+    fn handle_success(
+        &mut self,
+        ctx: &Context<Self>,
+        document: ResourcesDocument<GameAttributes>,
+    ) -> bool {
         if let Some(errors) = document.errors {
             gloo::console::error!(format!("{errors:?}"));
+
+            if errors.0.iter().any(|f| f.status == 401) {
+                self.authentication_required = true;
+            }
+
             return true;
         }
 
