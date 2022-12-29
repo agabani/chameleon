@@ -4,15 +4,7 @@ use yew::prelude::*;
 
 #[derive(Default, PartialEq)]
 pub struct CurrentUserState {
-    authenticated: bool,
-}
-
-impl Reducible for CurrentUserState {
-    type Action = Self;
-
-    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-        action.into()
-    }
+    pub authenticated: bool,
 }
 
 pub type CurrentUserContext = UseReducerHandle<CurrentUserState>;
@@ -31,5 +23,13 @@ pub fn CurrentUserProvider(props: &CurrentUserProps) -> Html {
         <ContextProvider<CurrentUserContext> context={context}>
             { props.children.clone() }
         </ContextProvider<CurrentUserContext>>
+    }
+}
+
+impl Reducible for CurrentUserState {
+    type Action = Self;
+
+    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
+        action.into()
     }
 }
