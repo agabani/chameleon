@@ -5,13 +5,14 @@ use crate::{
         authentication_switch::AuthenticationSwitch, theme_container::ThemeContainer,
         theme_picker::ThemePicker,
     },
-    contexts::{current_user::CurrentUserProvider, theme::ThemeProvider},
+    contexts::{current_user::CurrentUserProvider, network::NetworkProvider, theme::ThemeProvider},
     pages::name::Name,
 };
 
 #[function_component]
 pub fn App() -> Html {
     html! {
+        <NetworkProvider>
         <ThemeProvider>
         <CurrentUserProvider>
             <ThemeContainer>
@@ -22,5 +23,6 @@ pub fn App() -> Html {
             </ThemeContainer>
         </CurrentUserProvider>
         </ThemeProvider>
+        </NetworkProvider>
     }
 }

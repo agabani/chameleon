@@ -10,13 +10,13 @@ pub struct CurrentUserState {
 pub type CurrentUserContext = UseReducerHandle<CurrentUserState>;
 
 #[derive(PartialEq, Properties)]
-pub struct CurrentUserProps {
+pub struct Props {
     #[prop_or_default]
     pub children: Children,
 }
 
 #[function_component]
-pub fn CurrentUserProvider(props: &CurrentUserProps) -> Html {
+pub fn CurrentUserProvider(props: &Props) -> Html {
     let context = use_reducer(CurrentUserState::default);
 
     html! {

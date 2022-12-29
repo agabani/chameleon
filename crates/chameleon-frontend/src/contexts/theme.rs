@@ -17,12 +17,13 @@ pub enum ThemeVariant {
 pub type ThemeContext = UseReducerHandle<ThemeState>;
 
 #[derive(PartialEq, Properties)]
-pub struct ThemeProps {
+pub struct Props {
+    #[prop_or_default]
     pub children: Children,
 }
 
 #[function_component]
-pub fn ThemeProvider(props: &ThemeProps) -> Html {
+pub fn ThemeProvider(props: &Props) -> Html {
     let context = use_reducer(ThemeState::default);
 
     html! {
