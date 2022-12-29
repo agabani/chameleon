@@ -1,4 +1,5 @@
 use yew::prelude::*;
+use yew_router::prelude::*;
 
 use crate::{
     components::{
@@ -15,15 +16,43 @@ pub fn App() -> Html {
         <NetworkProvider>
         <ThemeProvider>
         <CurrentUserProvider>
+        <BrowserRouter>
             <ThemeContainer>
                 <ThemePicker />
-                <AuthenticationSwitch
-                    challenge={|_| html!{ <Name /> }}
-                    render={|_| html!{ <MainMenu /> }}
-                />
+                <Switch<Route> render={|route| match route {
+                    Route::MainMenu => html! {
+                        <AuthenticationSwitch
+                            challenge={|_| html!{ <Name /> }}
+                            render={|_| html!{ <MainMenu /> }}
+                        />
+                    },
+                    Route::Browse =>  html !{
+                        <div>{ "Browse" }</div>
+                    },
+                    Route::Host =>  html !{
+                        <div>{ "Host" }</div>
+                    },
+                    Route::NotFound => html !{
+                        <div>{ "Not Found" }</div>
+                    },
+                }} />
             </ThemeContainer>
+        </BrowserRouter>
         </CurrentUserProvider>
         </ThemeProvider>
         </NetworkProvider>
     }
+}
+
+#[derive(Clone, PartialEq, Routable)]
+pub enum Route {
+    #[at("/")]
+    MainMenu,
+    #[at("/browse")]
+    Browse,
+    #[at("/host")]
+    Host,
+    #[not_found]
+    #[at("/not-found")]
+    NotFound,
 }
