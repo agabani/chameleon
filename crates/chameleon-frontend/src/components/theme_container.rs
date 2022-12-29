@@ -1,6 +1,6 @@
 use yew::prelude::*;
 
-use crate::contexts::theme::{ThemeContext, ThemeVariant};
+use crate::contexts::theme::ThemeContext;
 
 #[derive(PartialEq, Properties)]
 pub struct Props {
@@ -11,12 +11,8 @@ pub struct Props {
 pub fn ThemeContainer(props: &Props) -> Html {
     let context = use_context::<ThemeContext>().unwrap();
 
-    let theme_variant = match context.variant {
-        ThemeVariant::Dark => "theme--dark",
-    };
-
     html! {
-        <div class={classes!("theme", theme_variant)}>
+        <div class={classes!("theme", format!("theme--{}", context.variant))}>
             { props.children.clone() }
         </div>
     }

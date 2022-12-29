@@ -1,7 +1,7 @@
 use yew::prelude::*;
 
 use crate::{
-    components::theme_container::ThemeContainer,
+    components::{theme_container::ThemeContainer, theme_picker::ThemePicker},
     contexts::{current_user::CurrentUserProvider, theme::ThemeProvider},
 };
 
@@ -11,6 +11,7 @@ pub fn App() -> Html {
         <ThemeProvider>
         <CurrentUserProvider>
             <ThemeContainer>
+                <ThemePicker />
                 { "app" }
             </ThemeContainer>
         </CurrentUserProvider>
