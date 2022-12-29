@@ -7,7 +7,7 @@ use crate::{
         theme_picker::ThemePicker,
     },
     contexts::{current_user::CurrentUserProvider, network::NetworkProvider, theme::ThemeProvider},
-    pages::{main_menu::MainMenu, name::Name},
+    pages::{browse::Browse, host::Host, main_menu::MainMenu, name::Name},
 };
 
 #[function_component]
@@ -27,10 +27,16 @@ pub fn App() -> Html {
                         />
                     },
                     Route::Browse =>  html !{
-                        <div>{ "Browse" }</div>
+                        <AuthenticationSwitch
+                            challenge={|_| html!{ <Name /> }}
+                            render={|_| html!{ <Browse /> }}
+                        />
                     },
                     Route::Host =>  html !{
-                        <div>{ "Host" }</div>
+                        <AuthenticationSwitch
+                            challenge={|_| html!{ <Name /> }}
+                            render={|_| html!{ <Host /> }}
+                        />
                     },
                     Route::NotFound => html !{
                         <div>{ "Not Found" }</div>
