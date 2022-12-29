@@ -12,7 +12,7 @@ pub fn ThemeContainer(props: &Props) -> Html {
     let context = use_context::<ThemeContext>().unwrap();
 
     html! {
-        <div class={classes!("theme", format!("theme--{}", context.variant))}>
+        <div class={classes!("theme-container", format!("theme--{}", context.variant))}>
             { props.children.clone() }
         </div>
     }

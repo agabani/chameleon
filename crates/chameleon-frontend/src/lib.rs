@@ -4,5 +4,6 @@
 mod app;
 mod components;
 mod contexts;
+mod pages;
 
 pub use app::App;
