@@ -6,7 +6,7 @@ use crate::{
         theme_picker::ThemePicker,
     },
     contexts::{current_user::CurrentUserProvider, network::NetworkProvider, theme::ThemeProvider},
-    pages::name::Name,
+    pages::{main_menu::MainMenu, name::Name},
 };
 
 #[function_component]
@@ -19,7 +19,8 @@ pub fn App() -> Html {
                 <ThemePicker />
                 <AuthenticationSwitch
                     challenge={|_| html!{ <Name /> }}
-                    render={|_| html!{ { "app" } }} />
+                    render={|_| html!{ <MainMenu /> }}
+                />
             </ThemeContainer>
         </CurrentUserProvider>
         </ThemeProvider>
