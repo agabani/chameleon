@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Error {
     #[serde(rename = "status")]
     pub status: u16,
@@ -17,13 +17,13 @@ pub struct Error {
     pub detail: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Errors(pub Vec<Error>);
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Links(pub HashMap<String, String>);
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Pagination {
     #[serde(rename = "page[after]")]
     pub after: Option<String>,
@@ -35,7 +35,7 @@ pub struct Pagination {
     pub size: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Resource<T> {
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -53,7 +53,7 @@ pub struct Resource<T> {
     pub relationships: Option<Relationships>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct ResourceIdentifier {
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
@@ -62,14 +62,14 @@ pub struct ResourceIdentifier {
     pub type_: Option<String>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum ResourceIdentifiers {
     Collection(Vec<ResourceIdentifier>),
     Individual(ResourceIdentifier),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct ResourceIdentifiersDocument {
     #[serde(rename = "data", skip_serializing_if = "Option::is_none")]
     pub data: Option<ResourceIdentifiers>,
@@ -81,14 +81,14 @@ pub struct ResourceIdentifiersDocument {
     pub links: Option<Links>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Resources<T> {
     Collection(Vec<Resource<T>>),
     Individual(Resource<T>),
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct ResourcesDocument<T> {
     #[serde(rename = "data", skip_serializing_if = "Option::is_none")]
     pub data: Option<Resources<T>>,
@@ -100,7 +100,7 @@ pub struct ResourcesDocument<T> {
     pub links: Option<Links>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Relationship {
     #[serde(rename = "data", skip_serializing_if = "Option::is_none")]
     pub data: Option<ResourceIdentifiers>,
@@ -109,10 +109,10 @@ pub struct Relationship {
     pub links: Option<Links>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Relationships(pub HashMap<String, Relationship>);
 
-#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Source {
     #[serde(rename = "header", skip_serializing_if = "Option::is_none")]
     pub header: Option<String>,
@@ -317,8 +317,8 @@ impl<T> Resources<T> {
     }
 }
 
-impl ResourcesDocument<()> {
-    pub fn not_found(_name: &str, display: &str) -> Self {
+impl<T> ResourcesDocument<T> {
+    pub fn not_found(_name: &str, display: &str) -> ResourcesDocument<T> {
         ResourcesDocument {
             data: None,
             errors: Some(Errors(vec![Error {
@@ -330,9 +330,37 @@ impl ResourcesDocument<()> {
             links: None,
         }
     }
-}
 
-impl<T> ResourcesDocument<T> {
+    pub fn internal_server_error() -> ResourcesDocument<T> {
+        ResourcesDocument {
+            data: None,
+            errors: Some(Errors(vec![Error {
+                status: 500,
+                source: None,
+                title: Some("Internal Server Error".to_string()),
+                detail: Some("An unexpected error has occurred".to_string()),
+            }])),
+            links: None,
+        }
+    }
+
+    pub fn unauthorized() -> ResourcesDocument<T> {
+        ResourcesDocument {
+            data: None,
+            errors: Some(Errors(vec![Error {
+                status: 401,
+                source: Some(Source {
+                    header: Some("x-chameleon-local-id".to_string()),
+                    parameter: None,
+                    pointer: None,
+                }),
+                title: "Invalid Header".to_string().into(),
+                detail: Some("`x-chameleon-local-id` does not have a user".to_string()),
+            }])),
+            links: None,
+        }
+    }
+
     pub fn try_get_link(&self, name: &str, display: &str) -> Result<&String, Box<Error>> {
         self.links
             .as_ref()

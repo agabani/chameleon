@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use chameleon_protocol::openid_connect;
+use chameleon_protocol::{attributes::UserAttributes, jsonapi::ResourcesDocument, openid_connect};
 use gloo::{
     net::http::Request,
     storage::{errors::StorageError, LocalStorage, Storage},
@@ -39,6 +39,18 @@ impl Reducible for NetworkState {
 }
 
 impl NetworkState {
+    pub async fn get_user(
+        &self,
+        id: &str,
+    ) -> Result<ResourcesDocument<UserAttributes>, gloo::net::Error> {
+        Request::get(&format!("/api/v1/users/{id}"))
+            .authentication_headers()
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn get_userinfo(&self) -> Result<Option<openid_connect::UserInfo>, gloo::net::Error> {
         let response = Request::get("/api/v1/userinfo")
             .authentication_headers()
