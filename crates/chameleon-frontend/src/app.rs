@@ -1,14 +1,19 @@
 use yew::prelude::*;
 
-use crate::contexts::{current_user, theme};
+use crate::{
+    components::theme_container::ThemeContainer,
+    contexts::{current_user::CurrentUserProvider, theme::ThemeProvider},
+};
 
 #[function_component]
 pub fn App() -> Html {
     html! {
-        <theme::Provider>
-            <current_user::Provider>
+        <ThemeProvider>
+        <CurrentUserProvider>
+            <ThemeContainer>
                 { "app" }
-            </current_user::Provider>
-        </theme::Provider>
+            </ThemeContainer>
+        </CurrentUserProvider>
+        </ThemeProvider>
     }
 }

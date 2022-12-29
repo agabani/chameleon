@@ -1,38 +1,40 @@
+use std::rc::Rc;
+
 use yew::prelude::*;
 
 #[derive(Default, PartialEq)]
-pub struct State {
-    variant: Variant,
+pub struct ThemeState {
+    pub variant: ThemeVariant,
 }
 
 #[derive(Default, PartialEq)]
-pub enum Variant {
+pub enum ThemeVariant {
     #[default]
     Dark,
 }
 
-impl Reducible for State {
+impl Reducible for ThemeState {
     type Action = Self;
 
-    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
+    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
         action.into()
     }
 }
 
-pub type Context = UseReducerHandle<State>;
+pub type ThemeContext = UseReducerHandle<ThemeState>;
 
 #[derive(PartialEq, Properties)]
-pub struct Props {
+pub struct ThemeProps {
     pub children: Children,
 }
 
 #[function_component]
-pub fn Provider(props: &Props) -> Html {
-    let context = use_reducer(State::default);
+pub fn ThemeProvider(props: &ThemeProps) -> Html {
+    let context = use_reducer(ThemeState::default);
 
     html! {
-        <ContextProvider<Context> context={context}>
+        <ContextProvider<ThemeContext> context={context}>
             { props.children.clone() }
-        </ContextProvider<Context>>
+        </ContextProvider<ThemeContext>>
     }
 }
