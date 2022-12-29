@@ -1,8 +1,6 @@
 #![deny(clippy::pedantic)]
 
-use yew::prelude::*;
+mod app;
+mod contexts;
 
-#[function_component]
-pub fn App() -> Html {
-    html! { "app" }
-}
+pub use app::App;
