@@ -39,6 +39,19 @@ impl Reducible for NetworkState {
 }
 
 impl NetworkState {
+    pub async fn create_user(
+        &self,
+        document: &ResourcesDocument<UserAttributes>,
+    ) -> Result<ResourcesDocument<UserAttributes>, gloo::net::Error> {
+        Request::post("/api/v1/users")
+            .authentication_headers()
+            .json(document)?
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn get_user(
         &self,
         id: &str,
@@ -62,6 +75,20 @@ impl NetworkState {
             401 => Ok(None),
             status => todo!("Unexpected status code: {status}"),
         }
+    }
+
+    pub async fn update_user(
+        &self,
+        id: &str,
+        document: &ResourcesDocument<UserAttributes>,
+    ) -> Result<ResourcesDocument<UserAttributes>, gloo::net::Error> {
+        Request::patch(&format!("/api/v1/users/{id}"))
+            .authentication_headers()
+            .json(document)?
+            .send()
+            .await?
+            .json()
+            .await
     }
 }
 
