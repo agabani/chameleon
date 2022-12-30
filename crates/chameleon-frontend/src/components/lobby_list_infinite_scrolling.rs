@@ -21,6 +21,7 @@ pub fn LobbyListInfiniteScrolling() -> Html {
     });
 
     let onclick = {
+        let network = network.clone();
         let state = state.clone();
         Callback::from(move |_| {
             let network = network.clone();
@@ -40,6 +41,21 @@ pub fn LobbyListInfiniteScrolling() -> Html {
             });
         })
     };
+
+    {
+        let state = state.clone();
+        use_effect(move || {
+            if state.document.is_none() {
+                spawn_local(async move {
+                    let document = network
+                        .query_lobby(None)
+                        .await
+                        .unwrap_or_else(|_| ResourcesDocument::internal_server_error());
+                    state.dispatch(document);
+                });
+            }
+        });
+    }
 
     html! {
         <div class="lobby-list-infinite-scrolling">
