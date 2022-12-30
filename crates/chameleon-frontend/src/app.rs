@@ -7,7 +7,7 @@ use crate::{
         theme_picker::ThemePicker,
     },
     contexts::{current_user::CurrentUserProvider, network::NetworkProvider, theme::ThemeProvider},
-    pages::{browse::Browse, host::Host, main_menu::MainMenu, name::Name},
+    pages::{browse::Browse, host::Host, lobby::Lobby, main_menu::MainMenu, name::Name},
 };
 
 #[function_component]
@@ -30,6 +30,15 @@ pub fn App() -> Html {
                         <AuthenticationSwitch
                             challenge={|_| html!{ <Name /> }}
                             render={|_| html!{ <Browse /> }}
+                        />
+                    },
+                    Route::Lobby { id } => html! {
+                        <AuthenticationSwitch
+                            challenge={|_| html!{ <Name /> }}
+                            render={move |_| {
+                                let id = id.clone();
+                                html!{ <Lobby id={id} /> }
+                            }}
                         />
                     },
                     Route::Host =>  html !{
@@ -58,6 +67,8 @@ pub enum Route {
     Browse,
     #[at("/host")]
     Host,
+    #[at("/lobby/:id")]
+    Lobby { id: String },
     #[not_found]
     #[at("/not-found")]
     NotFound,
