@@ -24,7 +24,7 @@ pub fn Browse() -> Html {
             {
                 if let Some(selected) = &state.selected {
                     html! {
-                        <LobbyDetails id={selected} name="a" host="b" />
+                        <LobbyDetails id={selected} />
                     }
                 } else {
                     html! {}

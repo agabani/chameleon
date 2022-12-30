@@ -56,6 +56,18 @@ impl NetworkState {
             .await
     }
 
+    pub async fn get_lobby(
+        &self,
+        id: &str,
+    ) -> Result<ResourcesDocument<LobbyAttributes>, gloo::net::Error> {
+        Request::get(&format!("/api/v1/lobbies/{id}"))
+            .authentication_headers()
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn get_user(
         &self,
         id: &str,
