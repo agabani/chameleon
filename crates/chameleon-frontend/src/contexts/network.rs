@@ -43,6 +43,19 @@ impl Reducible for NetworkState {
 }
 
 impl NetworkState {
+    pub async fn create_lobby(
+        &self,
+        document: &ResourcesDocument<LobbyAttributes>,
+    ) -> Result<ResourcesDocument<LobbyAttributes>, gloo::net::Error> {
+        Request::post("/api/v1/lobbies")
+            .authentication_headers()
+            .json(document)?
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn create_user(
         &self,
         document: &ResourcesDocument<UserAttributes>,
