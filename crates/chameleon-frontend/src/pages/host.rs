@@ -4,23 +4,27 @@ use chameleon_protocol::{
 };
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
+use yew_router::prelude::use_navigator;
 
 use crate::{
-    components::lobby_creation_form::LobbyCreationForm, contexts::network::NetworkContext,
+    app::Route, components::lobby_creation_form::LobbyCreationForm,
+    contexts::network::NetworkContext,
 };
 
 #[function_component]
 pub fn Host() -> Html {
     let disabled = use_state(|| false);
+    let navigator = use_navigator().unwrap();
     let network = use_context::<NetworkContext>().unwrap();
     let onsubmit = use_callback(
-        |name: AttrValue, (network, disabled)| {
+        |name: AttrValue, (network, navigator, disabled)| {
             disabled.set(true);
 
             let disabled = disabled.clone();
             let network = network.clone();
+            let navigator = navigator.clone();
             spawn_local(async move {
-                let _result = network
+                let document = network
                     .create_lobby(&ResourcesDocument {
                         data: Some(Resources::Individual(Resource {
                             id: None,
@@ -34,12 +38,24 @@ pub fn Host() -> Html {
                         errors: None,
                         links: None,
                     })
-                    .await;
+                    .await
+                    .unwrap_or_else(|_| ResourcesDocument::internal_server_error());
 
-                disabled.set(false);
+                let id = document
+                    .try_get_resources()
+                    .and_then(Resources::try_get_individual)
+                    .and_then(|r| r.try_get_field(|a| a.id.as_ref(), "id", "Id"))
+                    .cloned()
+                    .ok();
+
+                if let Some(id) = id {
+                    navigator.push(&Route::Lobby { id });
+                } else {
+                    disabled.set(false);
+                }
             });
         },
-        (network, disabled.clone()),
+        (network, navigator, disabled.clone()),
     );
 
     html! {
