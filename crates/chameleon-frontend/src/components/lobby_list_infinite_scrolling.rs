@@ -15,10 +15,7 @@ use crate::{
 #[function_component]
 pub fn LobbyListInfiniteScrolling() -> Html {
     let network = use_context::<NetworkContext>().unwrap();
-    let state = use_reducer(|| State {
-        document: None,
-        lobbies: Vec::new(),
-    });
+    let state = use_reducer(State::default);
 
     let onclick = {
         let network = network.clone();
@@ -26,41 +23,19 @@ pub fn LobbyListInfiniteScrolling() -> Html {
         Callback::from(move |_| {
             let network = network.clone();
             let state = state.clone();
-
-            let next = state
-                .document
-                .as_ref()
-                .and_then(|document| document.try_get_link("next", "Next").ok().cloned());
-
-            spawn_local(async move {
-                let document = network
-                    .query_lobby(next)
-                    .await
-                    .unwrap_or_else(|_| ResourcesDocument::internal_server_error());
-                state.dispatch(document);
-            });
+            fetch(network, state);
         })
     };
 
     {
         let state = state.clone();
-        use_effect(move || {
-            if state.document.is_none() {
-                spawn_local(async move {
-                    let document = network
-                        .query_lobby(None)
-                        .await
-                        .unwrap_or_else(|_| ResourcesDocument::internal_server_error());
-                    state.dispatch(document);
-                });
-            }
-        });
-    }
+        use_effect(|| initial_fetch(network, state));
+    };
 
     html! {
         <div class="lobby-list-infinite-scrolling">
             <LobbyList>
-                { state.lobbies.iter().map(|lobby|{
+                { state.lobbies.iter().map(|lobby| {
                     let id = lobby.try_get_field(|r| r.id.as_ref(), "id", "Id").unwrap();
                     let name = lobby.try_get_attribute(|a| a.name.as_ref(), "name", "Name").unwrap();
                     html! {
@@ -73,6 +48,7 @@ pub fn LobbyListInfiniteScrolling() -> Html {
     }
 }
 
+#[derive(Default)]
 struct State {
     document: Option<ResourcesDocument<LobbyAttributes>>,
     lobbies: Vec<Resource<LobbyAttributes>>,
@@ -95,5 +71,27 @@ impl Reducible for State {
             document: Some(action),
             lobbies,
         })
+    }
+}
+
+fn fetch(network: NetworkContext, state: UseReducerHandle<State>) {
+    let next = state
+        .document
+        .as_ref()
+        .and_then(|document| document.try_get_link("next", "Next").ok().cloned());
+
+    spawn_local(async move {
+        let document = network
+            .query_lobby(next)
+            .await
+            .unwrap_or_else(|_| ResourcesDocument::internal_server_error());
+
+        state.dispatch(document);
+    });
+}
+
+fn initial_fetch(network: NetworkContext, state: UseReducerHandle<State>) {
+    if state.document.is_none() {
+        fetch(network, state);
     }
 }
