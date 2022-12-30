@@ -1,6 +1,10 @@
 use std::rc::Rc;
 
-use chameleon_protocol::{attributes::UserAttributes, jsonapi::ResourcesDocument, openid_connect};
+use chameleon_protocol::{
+    attributes::{LobbyAttributes, UserAttributes},
+    jsonapi::ResourcesDocument,
+    openid_connect,
+};
 use gloo::{
     net::http::Request,
     storage::{errors::StorageError, LocalStorage, Storage},
@@ -75,6 +79,17 @@ impl NetworkState {
             401 => Ok(None),
             status => todo!("Unexpected status code: {status}"),
         }
+    }
+
+    pub async fn query_lobby(
+        &self,
+    ) -> Result<ResourcesDocument<LobbyAttributes>, gloo::net::Error> {
+        Request::get("/api/v1/lobbies")
+            .authentication_headers()
+            .send()
+            .await?
+            .json()
+            .await
     }
 
     pub async fn update_user(
