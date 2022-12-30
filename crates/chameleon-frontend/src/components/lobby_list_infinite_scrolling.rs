@@ -23,85 +23,98 @@ pub fn LobbyListInfiniteScrolling(props: &Props) -> Html {
     let state = use_reducer(State::default);
 
     let onclick = {
-        let network = network.clone();
         let state = state.clone();
-        Callback::from(move |_| {
-            let network = network.clone();
-            let state = state.clone();
-            fetch(network, state);
-        })
-    };
+        move |_| {
+            state.dispatch(Action::Clicked);
 
-    {
-        let state = state.clone();
-        use_effect(|| initial_fetch(network, state));
+            let network = network.clone();
+
+            let next = state
+                .document
+                .as_ref()
+                .and_then(|d| d.try_get_link("next", "Next").ok())
+                .cloned();
+
+            let state = state.clone();
+            spawn_local(async move {
+                let document = network
+                    .query_lobby(next)
+                    .await
+                    .unwrap_or_else(|_| ResourcesDocument::internal_server_error());
+
+                state.dispatch(Action::Document(Box::new(document)));
+            });
+        }
     };
 
     html! {
         <div class="lobby-list-infinite-scrolling">
             <LobbyList>
-                { state.lobbies.iter().map(|lobby| {
-                    let id = lobby.try_get_field(|r| r.id.as_ref(), "id", "Id").unwrap();
-                    let name = lobby.try_get_attribute(|a| a.name.as_ref(), "name", "Name").unwrap();
+            {
+                state.resources.iter().map(|resource| {
+                    let id = resource
+                        .try_get_field(|a| a.id.as_ref(), "id", "Id")
+                        .cloned()
+                        .unwrap();
+
+                    let name = resource
+                        .try_get_attribute(|a| a.name.as_ref(), "name", "Name")
+                        .cloned()
+                        .unwrap();
+
                     let onclick = {
                         let id = id.clone();
                         let onclick = props.onclick.clone();
-                        move |_| onclick.clone().emit(id.clone())
+                        move |_| {onclick.emit(id.clone())}
                     };
-                    html! {
-                        <LobbyListItem id={id.clone()} name={name.clone()} onclick={onclick} />
-                    }
-                }).collect::<Html>() }
+
+                    html! { <LobbyListItem id={id.clone()} name={name} onclick={onclick} key={id} /> }
+                }).collect::<Html>()
+            }
             </LobbyList>
-            <button onclick={onclick}>{ "Load More" }</button>
+            <button disabled={state.disabled} onclick={onclick}>{ "Load More" }</button>
         </div>
     }
 }
 
 #[derive(Default)]
 struct State {
+    disabled: bool,
     document: Option<ResourcesDocument<LobbyAttributes>>,
-    lobbies: Vec<Resource<LobbyAttributes>>,
+    resources: Vec<Resource<LobbyAttributes>>,
 }
 
 impl Reducible for State {
-    type Action = ResourcesDocument<LobbyAttributes>;
+    type Action = Action;
 
-    fn reduce(self: Rc<Self>, action: Self::Action) -> Rc<Self> {
-        let mut lobbies = self.lobbies.clone();
-        lobbies.extend(
-            action
-                .try_get_resources()
-                .and_then(Resources::try_get_collection)
-                .cloned()
-                .unwrap_or_default(),
-        );
+    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
+        match action {
+            Action::Clicked => Rc::new(Self {
+                disabled: true,
+                document: self.document.clone(),
+                resources: self.resources.clone(),
+            }),
+            Action::Document(document) => {
+                let mut resources = self.resources.clone();
+                resources.extend(
+                    document
+                        .try_get_resources()
+                        .and_then(Resources::try_get_collection)
+                        .cloned()
+                        .unwrap_or_default(),
+                );
 
-        Rc::new(Self {
-            document: Some(action),
-            lobbies,
-        })
+                Rc::new(Self {
+                    disabled: false,
+                    document: Some(*document),
+                    resources,
+                })
+            }
+        }
     }
 }
 
-fn fetch(network: NetworkContext, state: UseReducerHandle<State>) {
-    let next = state
-        .document
-        .as_ref()
-        .and_then(|document| document.try_get_link("next", "Next").ok().cloned());
-
-    spawn_local(async move {
-        let document = network
-            .query_lobby(next)
-            .await
-            .unwrap_or_else(|_| ResourcesDocument::internal_server_error());
-
-        state.dispatch(document);
-    });
-}
-
-fn initial_fetch(network: NetworkContext, state: UseReducerHandle<State>) {
-    if state.document.is_none() {
-        fetch(network, state);
-    }
+enum Action {
+    Clicked,
+    Document(Box<ResourcesDocument<LobbyAttributes>>),
 }
