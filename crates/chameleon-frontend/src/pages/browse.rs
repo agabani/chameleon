@@ -6,12 +6,12 @@ use crate::components::{
 
 #[function_component]
 pub fn Browse() -> Html {
-    let state = use_reducer(State::default);
+    let state = use_state(State::default);
 
     let onclick = {
         let state = state.clone();
         move |id: String| {
-            state.dispatch(State {
+            state.set(State {
                 selected: Some(id.into()),
             });
         }
@@ -37,12 +37,4 @@ pub fn Browse() -> Html {
 #[derive(Default)]
 struct State {
     selected: Option<AttrValue>,
-}
-
-impl Reducible for State {
-    type Action = Self;
-
-    fn reduce(self: std::rc::Rc<Self>, action: Self::Action) -> std::rc::Rc<Self> {
-        action.into()
-    }
 }
