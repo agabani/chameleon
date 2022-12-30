@@ -36,7 +36,7 @@ impl IntoResponse for ApiError {
                 StatusCode::from_u16(error.status).unwrap(),
                 Json(ResourcesDocument::<()> {
                     data: None,
-                    errors: Errors(vec![*error]).into(),
+                    errors: Some(Errors(vec![*error])),
                     links: None,
                 }),
             )
@@ -45,17 +45,7 @@ impl IntoResponse for ApiError {
                 tracing::error!(error =? error, "internal server error");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ResourcesDocument::<()> {
-                        data: None,
-                        errors: Errors(vec![jsonapi::Error {
-                            status: 500,
-                            source: None,
-                            title: "Internal Server Error".to_string().into(),
-                            detail: "An unexpected error has occurred".to_string().into(),
-                        }])
-                        .into(),
-                        links: None,
-                    }),
+                    Json(ResourcesDocument::<()>::internal_server_error()),
                 )
                     .into_response()
             }

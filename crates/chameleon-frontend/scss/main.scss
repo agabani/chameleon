@@ -6,27 +6,5 @@
 @import "base/reset";
 @import "base/typography";
 
-@import "layout/navigation";
-@import "layout/grid";
-@import "layout/header";
-@import "layout/footer";
-@import "layout/sidebar";
-@import "layout/forms";
-
-@import "components/app";
-@import "components/buttons";
-@import "components/carousel";
-@import "components/cover";
-@import "components/dropdown";
-@import "components/server-details";
-@import "components/server-list";
-@import "components/server-list-item";
-@import "components/top-menu";
-@import "components/topic-card";
-
-@import "pages/browse";
-@import "pages/home";
-@import "pages/host";
-@import "pages/contact";
-
 @import "themes/dark";
+@import "themes/light";

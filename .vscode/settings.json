@@ -3,6 +3,7 @@
     "bindgen",
     "gloo",
     "jsonapi",
+    "onchange",
     "onclick",
     "onscroll",
     "onsubmit",

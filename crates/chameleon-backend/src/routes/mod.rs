@@ -1,6 +1,6 @@
 use chameleon_protocol::jsonapi::{Links, Relationships, Resource, ResourceIdentifier};
 
-pub mod api_v1_games;
+pub mod api_v1_lobbies;
 pub mod api_v1_message;
 pub mod api_v1_ping;
 pub mod api_v1_telemetry;

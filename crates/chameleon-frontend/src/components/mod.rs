@@ -1,8 +1,8 @@
-pub mod server_details;
-pub mod server_list;
-pub mod server_list_item;
-pub mod test_chat;
-pub mod test_user;
-pub mod top_menu;
-pub mod topic_card;
-pub mod user_signup;
+pub mod authentication_switch;
+pub mod lobby_creation_form;
+pub mod lobby_details;
+pub mod lobby_list;
+pub mod lobby_list_infinite_scrolling;
+pub mod lobby_list_item;
+pub mod theme_container;
+pub mod theme_picker;

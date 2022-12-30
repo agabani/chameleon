@@ -4,7 +4,7 @@ use chameleon_protocol::{
 };
 use sqlx::{postgres::PgListener, Executor, Pool, Postgres};
 
-use crate::domain::{Game, GameId, LocalId, User, UserId};
+use crate::domain::{Lobby, LobbyId, LocalId, User, UserId};
 
 pub struct Database {}
 
@@ -27,34 +27,34 @@ impl Database {
             .map(|_| ())
     }
 
-    pub async fn insert_game<'c, E>(conn: E, game: &Game) -> Result<(), sqlx::Error>
+    pub async fn insert_lobby<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
         sqlx::query!(
-            r#"INSERT INTO game (public_id, name)
+            r#"INSERT INTO lobby (public_id, name)
             VALUES ($1, $2)
             ON CONFLICT (public_id) DO UPDATE
                 SET name = $2;"#,
-            game.id.0,
-            game.name,
+            lobby.id.0,
+            lobby.name,
         )
         .execute(conn)
         .await
         .map(|_| ())
     }
 
-    pub async fn insert_game_player<'c, E>(conn: E, game: &Game) -> Result<(), sqlx::Error>
+    pub async fn insert_lobby_member<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
         sqlx::query!(
-            r#"INSERT INTO game_player (game_id, user_id, host)
-            VALUES ((SELECT id FROM game WHERE public_id = $1),
+            r#"INSERT INTO lobby_member (lobby_id, user_id, host)
+            VALUES ((SELECT id FROM lobby WHERE public_id = $1),
                     (SELECT id FROM "user" WHERE public_id = $2),
                     $3);"#,
-            game.id.0,
-            game.host.0,
+            lobby.id.0,
+            lobby.host.0,
             true
         )
         .execute(conn)
@@ -97,21 +97,21 @@ impl Database {
         .map(|_| ())
     }
 
-    pub async fn query_game<'c, E>(
+    pub async fn query_lobby<'c, E>(
         conn: E,
         keyset_pagination: KeysetPagination,
-    ) -> Result<(Vec<Game>, i64), sqlx::Error>
+    ) -> Result<(Vec<Lobby>, i64), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
         let records = sqlx::query!(
-            r#"SELECT g.id, g.public_id, g.name, u.public_id host_public_id
-            FROM game g
-                     JOIN game_player gp ON g.id = gp.game_id
-                     JOIN "user" u ON u.id = gp.user_id
-            WHERE g.id > $1
-              AND gp.host IS TRUE
-            ORDER BY g.id
+            r#"SELECT l.id, l.public_id, l.name, u.public_id host_public_id
+            FROM lobby l
+                     JOIN lobby_member lm ON l.id = lm.lobby_id
+                     JOIN "user" u ON u.id = lm.user_id
+            WHERE l.id > $1
+              AND lm.host IS TRUE
+            ORDER BY l.id
             LIMIT $2;"#,
             keyset_pagination.id,
             keyset_pagination.limit,
@@ -123,36 +123,39 @@ impl Database {
             .last()
             .map_or(keyset_pagination.id, |record| record.id);
 
-        let games = records
+        let lobbies = records
             .into_iter()
-            .map(|record| Game {
-                id: GameId(record.public_id),
+            .map(|record| Lobby {
+                id: LobbyId(record.public_id),
                 name: record.name,
                 host: UserId(record.host_public_id),
             })
             .collect();
 
-        Ok((games, last_record_id))
+        Ok((lobbies, last_record_id))
     }
 
-    pub async fn select_game<'c, E>(conn: E, game_id: GameId) -> Result<Option<Game>, sqlx::Error>
+    pub async fn select_lobby<'c, E>(
+        conn: E,
+        lobby_id: LobbyId,
+    ) -> Result<Option<Lobby>, sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
         sqlx::query!(
-            r#"SELECT g.public_id, g.name, u.public_id host_public_id
-            FROM game g
-                     JOIN game_player gp ON g.id = gp.game_id
-                     JOIN "user" u ON u.id = gp.user_id
-            WHERE g.public_id = $1
-              AND gp.host IS TRUE;"#,
-            game_id.0
+            r#"SELECT l.public_id, l.name, u.public_id host_public_id
+            FROM lobby l
+                     JOIN lobby_member lm ON l.id = lm.lobby_id
+                     JOIN "user" u ON u.id = lm.user_id
+            WHERE l.public_id = $1
+              AND lm.host IS TRUE;"#,
+            lobby_id.0
         )
         .fetch_optional(conn)
         .await
         .map(|record| {
-            record.map(|record| Game {
-                id: GameId(record.public_id),
+            record.map(|record| Lobby {
+                id: LobbyId(record.public_id),
                 name: record.name,
                 host: UserId(record.host_public_id),
             })
@@ -198,16 +201,16 @@ impl Database {
         .await
     }
 
-    pub async fn update_game<'c, E>(conn: E, game: &Game) -> Result<(), sqlx::Error>
+    pub async fn update_lobby<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
         sqlx::query!(
-            r#"UPDATE game
+            r#"UPDATE lobby
             SET name = $2
             WHERE public_id = $1"#,
-            game.id.0,
-            game.name,
+            lobby.id.0,
+            lobby.name,
         )
         .execute(conn)
         .await

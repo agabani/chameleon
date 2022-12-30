@@ -1,65 +1,40 @@
 use yew::prelude::*;
 
 use crate::components::{
-    server_details::ServerDetails,
-    server_list::ServerList,
-    top_menu::{Item, TopMenu},
+    lobby_details::LobbyDetails, lobby_list_infinite_scrolling::LobbyListInfiniteScrolling,
 };
 
-pub struct Browse {
-    selected: Option<String>,
-}
+#[function_component]
+pub fn Browse() -> Html {
+    let state = use_state(State::default);
 
-pub enum Msg {
-    ItemSelected(String),
-}
-
-impl Component for Browse {
-    type Message = Msg;
-
-    type Properties = ();
-
-    fn create(_ctx: &Context<Self>) -> Self {
-        Self { selected: None }
-    }
-
-    fn view(&self, ctx: &Context<Self>) -> Html {
-        let item_selected = ctx.link().callback(Msg::ItemSelected);
-
-        html! {
-            <div class="browse">
-                <TopMenu active={Item::Browse} />
-                <div class="browse--content">
-                    <div class="browse--smoke medium"></div>
-                    <div class="browse--smoke small"></div>
-                    <div class="browse--smoke large"></div>
-                    <div class="browse--list">
-                        <div class="browse--title">{ "Browse Servers" }</div>
-                        <ServerList onclick={item_selected} />
-                    </div>
-                    <div class="browse--details">
-                        {
-                            if let Some(selected) = &self.selected {
-                                html!{
-                                    <ServerDetails id={ selected.clone() } />
-                                }
-                            } else {
-                                html!{}
-                            }
-                        }
-
-                    </div>
-                </div>
-            </div>
+    let onclick = {
+        let state = state.clone();
+        move |id: String| {
+            state.set(State {
+                selected: Some(id.into()),
+            });
         }
-    }
+    };
 
-    fn update(&mut self, _ctx: &Context<Self>, msg: Self::Message) -> bool {
-        match msg {
-            Msg::ItemSelected(id) => {
-                self.selected = Some(id);
-                true
+    html! {
+        <div class="browse">
+            <div>{ "Browse" }</div>
+            <LobbyListInfiniteScrolling onclick={onclick} />
+            {
+                if let Some(selected) = &state.selected {
+                    html! {
+                        <LobbyDetails id={selected} />
+                    }
+                } else {
+                    html! {}
+                }
             }
-        }
+        </div>
     }
+}
+
+#[derive(Default)]
+struct State {
+    selected: Option<AttrValue>,
 }

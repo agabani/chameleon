@@ -1,5 +1,5 @@
 pub mod browse;
-pub mod home;
 pub mod host;
-pub mod not_found;
-pub mod test;
+pub mod lobby;
+pub mod main_menu;
+pub mod name;

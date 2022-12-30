@@ -28,22 +28,16 @@ impl FromRequestParts<AppState> for UserId {
             Database::select_user_id_by_local_id(&state.postgres_pool, local_id)
                 .await?
                 .ok_or_else(|| {
-                    ApiError::JsonApi(
-                        jsonapi::Error {
-                            status: 401,
-                            source: Source {
-                                header: "x-chameleon-local-id".to_string().into(),
-                                parameter: None,
-                                pointer: None,
-                            }
-                            .into(),
-                            title: "Invalid Header".to_string().into(),
-                            detail: "`x-chameleon-local-id` does not have a user"
-                                .to_string()
-                                .into(),
-                        }
-                        .into(),
-                    )
+                    ApiError::JsonApi(Box::new(jsonapi::Error {
+                        status: 401,
+                        source: Some(Source {
+                            header: Some("x-chameleon-local-id".to_string()),
+                            parameter: None,
+                            pointer: None,
+                        }),
+                        title: "Invalid Header".to_string().into(),
+                        detail: Some("`x-chameleon-local-id` does not have a user".to_string()),
+                    }))
                 })
         })
     }
