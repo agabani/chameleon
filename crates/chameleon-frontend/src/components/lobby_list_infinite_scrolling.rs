@@ -12,8 +12,13 @@ use crate::{
     contexts::network::NetworkContext,
 };
 
+#[derive(PartialEq, Properties)]
+pub struct Props {
+    pub onclick: Callback<String>,
+}
+
 #[function_component]
-pub fn LobbyListInfiniteScrolling() -> Html {
+pub fn LobbyListInfiniteScrolling(props: &Props) -> Html {
     let network = use_context::<NetworkContext>().unwrap();
     let state = use_reducer(State::default);
 
@@ -38,8 +43,13 @@ pub fn LobbyListInfiniteScrolling() -> Html {
                 { state.lobbies.iter().map(|lobby| {
                     let id = lobby.try_get_field(|r| r.id.as_ref(), "id", "Id").unwrap();
                     let name = lobby.try_get_attribute(|a| a.name.as_ref(), "name", "Name").unwrap();
+                    let onclick = {
+                        let id = id.clone();
+                        let onclick = props.onclick.clone();
+                        move |_| onclick.clone().emit(id.clone())
+                    };
                     html! {
-                        <LobbyListItem id={id.clone()} name={name.clone()} />
+                        <LobbyListItem id={id.clone()} name={name.clone()} onclick={onclick} />
                     }
                 }).collect::<Html>() }
             </LobbyList>
