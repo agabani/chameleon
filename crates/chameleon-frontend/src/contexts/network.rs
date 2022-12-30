@@ -83,8 +83,9 @@ impl NetworkState {
 
     pub async fn query_lobby(
         &self,
+        next: Option<String>,
     ) -> Result<ResourcesDocument<LobbyAttributes>, gloo::net::Error> {
-        Request::get("/api/v1/lobbies")
+        Request::get(&next.unwrap_or_else(|| "/api/v1/lobbies".to_string()))
             .authentication_headers()
             .send()
             .await?
