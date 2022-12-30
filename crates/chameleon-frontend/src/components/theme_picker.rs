@@ -9,16 +9,14 @@ use crate::contexts::theme::{ThemeContext, ThemeState, ThemeVariant};
 pub fn ThemePicker() -> Html {
     let context = use_context::<ThemeContext>().unwrap();
     let node_ref = use_node_ref();
-
-    let onchange = {
-        let context = context.clone();
-        let node_ref = node_ref.clone();
-        Callback::from(move |_| {
+    let onchange = use_callback(
+        |_, (context, node_ref)| {
             let value = node_ref.cast::<HtmlInputElement>().unwrap().value();
             let variant = ThemeVariant::from_str(&value).unwrap_or_default();
             context.dispatch(ThemeState { variant });
-        })
-    };
+        },
+        (context.clone(), node_ref.clone()),
+    );
 
     html! {
         <div class="theme-picker">
