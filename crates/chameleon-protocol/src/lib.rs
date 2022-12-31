@@ -1,4 +1,5 @@
 pub mod attributes;
+pub mod frames;
 pub mod http;
 pub mod jsonapi;
 pub mod jsonrpc;

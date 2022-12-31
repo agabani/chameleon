@@ -1,11 +1,14 @@
 use axum::{
-    extract::{ws::WebSocket, Path, State, WebSocketUpgrade},
+    extract::{
+        ws::{Message, WebSocket},
+        Path, State, WebSocketUpgrade,
+    },
     response::Response,
     routing::get,
     Router,
 };
-use chameleon_protocol::jsonapi;
-use futures::StreamExt;
+use chameleon_protocol::{frames::LobbyFrame, jsonapi};
+use futures::{SinkExt, StreamExt};
 use tracing::Instrument;
 
 use crate::{database::Database, domain::LobbyId, error::ApiError, AppState};
@@ -31,7 +34,7 @@ async fn get_one(
 
 #[tracing::instrument(skip(app_state, web_socket))]
 async fn get_one_handler(app_state: AppState, lobby_id: LobbyId, web_socket: WebSocket) {
-    let (mut _sink, mut stream) = web_socket.split();
+    let (mut sink, mut stream) = web_socket.split();
 
     let mut _listener = Database::listener(&app_state.postgres_pool)
         .await
@@ -44,7 +47,24 @@ async fn get_one_handler(app_state: AppState, lobby_id: LobbyId, web_socket: Web
                 return;
             };
 
-                tracing::info!(message =? message, "message received");
+                match message {
+                    Message::Text(text) => {
+                        match LobbyFrame::try_from_str(&text) {
+                            Ok(frame) => {
+                                tracing::info!(frame =? frame, "frame received");
+                            }
+                            Err(_) => {
+                                sink.send(Message::Text(
+                                    LobbyFrame::parse_error().to_string().unwrap(),
+                                ))
+                                .await
+                                .expect("TODO: Failed to resend error");
+                            }
+                        };
+                    }
+                    Message::Close(reason) => tracing::info!(reason =? reason, "close"),
+                    _ => {}
+                }
             }
         }
         .in_current_span(),
