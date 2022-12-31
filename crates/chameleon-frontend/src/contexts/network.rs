@@ -6,8 +6,9 @@ use chameleon_protocol::{
     openid_connect,
 };
 use gloo::{
-    net::http::Request,
+    net::{http::Request, websocket::futures::WebSocket},
     storage::{errors::StorageError, LocalStorage, Storage},
+    utils::document,
 };
 use uuid::Uuid;
 use yew::prelude::*;
@@ -143,6 +144,22 @@ impl NetworkState {
             .await
     }
 
+    #[allow(clippy::unused_self)]
+    pub fn subscribe_lobby(&self, id: &str) -> Result<WebSocket, gloo::utils::errors::JsError> {
+        let location = document().location().expect("Failed to read location");
+        let host = location.host().expect("Failed to read location host");
+        let protocol = location
+            .protocol()
+            .expect("Failed to read location protocol");
+
+        let url = format!(
+            "{}//{host}/ws/v1/lobbies/{id}",
+            if protocol == "https:" { "wss:" } else { "ws:" }
+        );
+
+        WebSocket::open(&url)
+    }
+
     pub async fn update_user(
         &self,
         id: &str,
@@ -156,6 +173,11 @@ impl NetworkState {
             .json()
             .await
     }
+
+    #[allow(clippy::unused_self)]
+    pub fn local_id(&self) -> Result<String, StorageError> {
+        local_id()
+    }
 }
 
 trait RequestExt {
@@ -164,22 +186,21 @@ trait RequestExt {
 
 impl RequestExt for gloo::net::http::Request {
     fn authentication_headers(self) -> Self {
-        const KEY: &str = "local-id";
+        self.header("x-chameleon-local-id", &local_id().unwrap())
+    }
+}
 
-        let value: String = {
-            match LocalStorage::get(KEY) {
-                Ok(value) => Ok(value),
-                Err(StorageError::KeyNotFound(_)) => {
-                    match LocalStorage::set(KEY, Uuid::new_v4().to_string()) {
-                        Ok(_) => LocalStorage::get(KEY),
-                        Err(err) => Err(err),
-                    }
-                }
+fn local_id() -> Result<String, StorageError> {
+    const KEY: &str = "local-id";
+
+    match LocalStorage::get(KEY) {
+        Ok(value) => Ok(value),
+        Err(StorageError::KeyNotFound(_)) => {
+            match LocalStorage::set(KEY, Uuid::new_v4().to_string()) {
+                Ok(_) => LocalStorage::get(KEY),
                 Err(err) => Err(err),
             }
         }
-        .unwrap();
-
-        self.header("x-chameleon-local-id", &value)
+        Err(err) => Err(err),
     }
 }

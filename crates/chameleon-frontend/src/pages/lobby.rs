@@ -2,7 +2,10 @@ use chameleon_protocol::jsonapi::Resources;
 use yew::prelude::*;
 
 use crate::{
-    containers::lobby_member_list_container::LobbyMemberListContainer,
+    containers::{
+        lobby_chat_list_container::LobbyChatListContainer,
+        lobby_member_list_container::LobbyMemberListContainer,
+    },
     hooks::lobby::{use_lobby, use_lobby_host},
 };
 
@@ -50,6 +53,8 @@ fn Content(props: &Props) -> HtmlResult {
             <div>{ host }</div>
             <div>{ "=== members ===" }</div>
             <LobbyMemberListContainer id={props.id.clone()} />
+            <div>{ "=== chat ===" }</div>
+            <LobbyChatListContainer id={props.id.clone()} />
         </div>
     })
 }
