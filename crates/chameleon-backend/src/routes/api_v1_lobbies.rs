@@ -344,12 +344,34 @@ async fn create_chat_message(
         lobby.id,
         LobbyRequest::ChatMessage(LobbyChatMessage {
             user_id: Some(user_id.0.to_string()),
-            message: Some(message),
+            message: Some(message.clone()),
         }),
     )
     .await?;
 
-    Ok(StatusCode::ACCEPTED.into_response())
+    Ok((
+        StatusCode::ACCEPTED,
+        Json(ResourcesDocument {
+            data: Some(Resources::Individual(jsonapi::Resource {
+                id: None,
+                type_: Some("chat_message".to_string()),
+                attributes: Some(ChatMessageAttributes {
+                    message: Some(message),
+                }),
+                links: None,
+                relationships: None,
+            })),
+            errors: None,
+            links: Some(Links(
+                [(
+                    "self".to_string(),
+                    format!("{PATH}/{}/actions/chat_message", lobby.id.0),
+                )]
+                .into(),
+            )),
+        }),
+    )
+        .into_response())
 }
 
 impl Lobby {

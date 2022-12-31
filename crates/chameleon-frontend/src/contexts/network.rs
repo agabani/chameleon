@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use chameleon_protocol::{
-    attributes::{LobbyAttributes, UserAttributes},
+    attributes::{ChatMessageAttributes, LobbyAttributes, UserAttributes},
     jsonapi::ResourcesDocument,
     openid_connect,
 };
@@ -44,6 +44,20 @@ impl Reducible for NetworkState {
 }
 
 impl NetworkState {
+    pub async fn action_lobby_chat_message(
+        &self,
+        id: &str,
+        document: &ResourcesDocument<ChatMessageAttributes>,
+    ) -> Result<ResourcesDocument<ChatMessageAttributes>, gloo::net::Error> {
+        Request::post(&format!("/api/v1/lobbies/{id}/actions/chat_message"))
+            .authentication_headers()
+            .json(document)?
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn create_lobby(
         &self,
         document: &ResourcesDocument<LobbyAttributes>,

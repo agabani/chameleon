@@ -1,7 +1,9 @@
 use std::rc::Rc;
 
 use chameleon_protocol::{
+    attributes::ChatMessageAttributes,
     frames::{LobbyAuthenticate, LobbyFrame, LobbyRequest},
+    jsonapi::{self, Resources, ResourcesDocument},
     jsonrpc::FrameType,
 };
 use futures::StreamExt;
@@ -9,7 +11,10 @@ use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::{
-    components::{lobby_chat_list::LobbyChatList, lobby_chat_list_item::LobbyChatListItem},
+    components::{
+        lobby_chat_input::LobbyChatInput, lobby_chat_list::LobbyChatList,
+        lobby_chat_list_item::LobbyChatListItem,
+    },
     contexts::network::NetworkContext,
     hooks::lobby::use_lobby_subscription,
 };
@@ -26,6 +31,7 @@ pub fn LobbyChatListContainer(props: &Props) -> Html {
     let channel = use_lobby_subscription(&props.id);
 
     {
+        let network = network.clone();
         let mut sender = channel.0.lock().unwrap().clone();
         use_memo(
             move |_| {
@@ -81,14 +87,49 @@ pub fn LobbyChatListContainer(props: &Props) -> Html {
         );
     };
 
+    let onsubmit = {
+        let id = props.id.clone();
+        use_callback(
+            move |message: AttrValue, _| {
+                let id = id.clone();
+                let network = network.clone();
+                spawn_local(async move {
+                    network
+                        .action_lobby_chat_message(
+                            &id,
+                            &ResourcesDocument {
+                                data: Some(Resources::Individual(jsonapi::Resource {
+                                    id: None,
+                                    type_: Some("chat_message".to_string()),
+                                    attributes: Some(ChatMessageAttributes {
+                                        message: Some(message.to_string()),
+                                    }),
+                                    links: None,
+                                    relationships: None,
+                                })),
+                                errors: None,
+                                links: None,
+                            },
+                        )
+                        .await
+                        .unwrap();
+                });
+            },
+            (),
+        )
+    };
+
     html! {
-        <LobbyChatList>
-            {
-                state.messages.iter().map(|(name, message)| html! {
-                    <LobbyChatListItem name={name} message={message} />
-                }).collect::<Html>()
-            }
-        </LobbyChatList>
+        <>
+            <LobbyChatList>
+                {
+                    state.messages.iter().map(|(name, message)| html! {
+                        <LobbyChatListItem name={name} message={message} />
+                    }).collect::<Html>()
+                }
+            </LobbyChatList>
+            <LobbyChatInput onsubmit={onsubmit} />
+        </>
     }
 }
 
