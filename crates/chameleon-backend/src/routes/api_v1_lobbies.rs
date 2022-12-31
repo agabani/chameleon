@@ -8,7 +8,7 @@ use axum::{
 };
 use chameleon_protocol::{
     attributes::{ChatMessageAttributes, LobbyAttributes},
-    frames::{LobbyChatMessage, LobbyRequest},
+    frames::{LobbyChatMessage, LobbyRequest, LobbyUserJoined},
     jsonapi::{
         self, Links, Pagination, Relationship, Relationships, ResourceIdentifiers,
         ResourceIdentifiersDocument, Resources, ResourcesDocument,
@@ -410,6 +410,15 @@ async fn create_lobby_member(
             .into(),
         )),
     };
+
+    Database::notify_lobby(
+        &app_state.postgres_pool,
+        lobby.id,
+        LobbyRequest::UserJoined(LobbyUserJoined {
+            user_id: Some(user_id.0.to_string()),
+        }),
+    )
+    .await?;
 
     Ok((StatusCode::OK, Json(document)).into_response())
 }

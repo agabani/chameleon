@@ -12,6 +12,9 @@ pub enum LobbyRequest {
 
     #[serde(rename = "chat_message")]
     ChatMessage(LobbyChatMessage),
+
+    #[serde(rename = "user_joined")]
+    UserJoined(LobbyUserJoined),
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
@@ -27,6 +30,12 @@ pub struct LobbyChatMessage {
 
     #[serde(rename = "message", skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+pub struct LobbyUserJoined {
+    #[serde(rename = "user_id", skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
