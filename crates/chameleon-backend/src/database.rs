@@ -97,6 +97,29 @@ impl Database {
         .map(|_| ())
     }
 
+    pub async fn is_lobby_member<'c, E>(
+        conn: E,
+        lobby_id: LobbyId,
+        user_id: UserId,
+    ) -> Result<bool, sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"SELECT TRUE member
+            FROM lobby l
+                     JOIN lobby_member lm on l.id = lm.lobby_id
+                     JOIN "user" u on u.id = lm.user_id
+            WHERE l.public_id = $1
+              AND u.public_id = $2;"#,
+            lobby_id.0,
+            user_id.0
+        )
+        .fetch_optional(conn)
+        .await
+        .map(|r| r.and_then(|r| r.member).unwrap_or_default())
+    }
+
     pub async fn query_lobby<'c, E>(
         conn: E,
         keyset_pagination: KeysetPagination,

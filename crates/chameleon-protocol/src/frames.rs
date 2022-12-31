@@ -17,4 +17,9 @@ pub struct LobbyAuthenticate {
     pub local_id: Option<String>,
 }
 
-pub type LobbyResponse = ();
+#[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(tag = "method", content = "value")]
+pub enum LobbyResponse {
+    #[serde(rename = "authenticate")]
+    Authenticate(bool),
+}

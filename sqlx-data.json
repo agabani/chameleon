@@ -13,6 +13,27 @@
     },
     "query": "INSERT INTO \"user\" (public_id, name)\n            VALUES ($1, $2);"
   },
+  "16d0db0250d818d3ca4714c56fac68cbad655c6ace9e90f7271c47a242ec486c": {
+    "describe": {
+      "columns": [
+        {
+          "name": "member",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT TRUE member\n            FROM lobby l\n                     JOIN lobby_member lm on l.id = lm.lobby_id\n                     JOIN \"user\" u on u.id = lm.user_id\n            WHERE l.public_id = $1\n              AND u.public_id = $2;"
+  },
   "8e1aa72d21270b68b564bffd2c2d9050876551939405c089c929e271df28a796": {
     "describe": {
       "columns": [],
@@ -51,6 +72,40 @@
       }
     },
     "query": "SELECT u.public_id, u.name\n            FROM \"user\" u\n            WHERE u.public_id = $1;"
+  },
+  "a32bef703e476092edf6ecfdb37303878faa7f56df2a1d15612542c4964dd1dc": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "public_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT lm.id, u.public_id, u.name\n            FROM lobby l\n                     JOIN lobby_member lm on l.id = lm.lobby_id\n                     JOIN \"user\" u on u.id = lm.user_id\n            WHERE l.public_id = $3\n              AND lm.id > $1\n            ORDER BY lm.id\n            LIMIT $2;"
   },
   "ae6dcd2c11d602c70813eb2cde6df8248e61ca1f62b202c4b24bb27263532dbf": {
     "describe": {
