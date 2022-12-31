@@ -93,6 +93,19 @@ impl NetworkState {
             .await
     }
 
+    pub async fn get_lobby_members(
+        &self,
+        id: &str,
+        next: Option<String>,
+    ) -> Result<ResourcesDocument<UserAttributes>, gloo::net::Error> {
+        Request::get(&next.unwrap_or_else(|| format!("/api/v1/lobbies/{id}/members")))
+            .authentication_headers()
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn get_user(
         &self,
         id: &str,

@@ -135,6 +135,45 @@ impl Database {
         Ok((lobbies, last_record_id))
     }
 
+    pub async fn query_lobby_member<'c, E>(
+        conn: E,
+        lobby_id: LobbyId,
+        keyset_pagination: KeysetPagination,
+    ) -> Result<(Vec<User>, i64), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        let records = sqlx::query!(
+            r#"SELECT lm.id, u.public_id, u.name
+            FROM lobby l
+                     JOIN lobby_member lm on l.id = lm.lobby_id
+                     JOIN "user" u on u.id = lm.user_id
+            WHERE l.public_id = $3
+              AND lm.id > $1
+            ORDER BY lm.id
+            LIMIT $2;"#,
+            keyset_pagination.id,
+            keyset_pagination.limit,
+            lobby_id.0
+        )
+        .fetch_all(conn)
+        .await?;
+
+        let last_record_id = records
+            .last()
+            .map_or(keyset_pagination.id, |record| record.id);
+
+        let users = records
+            .into_iter()
+            .map(|record| User {
+                id: UserId(record.public_id),
+                name: record.name,
+            })
+            .collect();
+
+        Ok((users, last_record_id))
+    }
+
     pub async fn select_lobby<'c, E>(
         conn: E,
         lobby_id: LobbyId,

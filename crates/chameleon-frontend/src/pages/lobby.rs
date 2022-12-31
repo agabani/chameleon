@@ -1,7 +1,10 @@
 use chameleon_protocol::jsonapi::Resources;
 use yew::prelude::*;
 
-use crate::hooks::lobby::{use_lobby, use_lobby_host};
+use crate::{
+    containers::lobby_member_list_container::LobbyMemberListContainer,
+    hooks::lobby::{use_lobby, use_lobby_host},
+};
 
 #[derive(PartialEq, Properties)]
 pub struct Props {
@@ -45,6 +48,8 @@ fn Content(props: &Props) -> HtmlResult {
             <div>{ id }</div>
             <div>{ name }</div>
             <div>{ host }</div>
+            <div>{ "=== members ===" }</div>
+            <LobbyMemberListContainer id={props.id.clone()} />
         </div>
     })
 }

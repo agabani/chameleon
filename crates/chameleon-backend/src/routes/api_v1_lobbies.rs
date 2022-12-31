@@ -32,12 +32,23 @@ pub fn router() -> Router<AppState> {
         .route("/", post(create_one))
         .route("/:lobby_id", get(get_one))
         .route("/:lobby_id", patch(update_one))
+        // relationship: host
         .route("/:lobby_id/relationships/host", get(get_relationships_host))
         .route(
             "/:lobby_id/relationships/host",
-            patch(|| async { StatusCode::NOT_IMPLEMENTED.into_response() }),
+            patch(update_relationships_host),
         )
         .route("/:lobby_id/host", get(get_host))
+        // relationship: members
+        .route(
+            "/:lobby_id/relationships/members",
+            get(get_relationships_members),
+        )
+        .route(
+            "/:lobby_id/relationships/members",
+            patch(update_relationships_members),
+        )
+        .route("/:lobby_id/members", get(get_members))
 }
 
 #[tracing::instrument(skip(app_state))]
@@ -119,7 +130,7 @@ async fn get_many(
             lobbies
                 .iter()
                 .map(|lobby| lobby.to_resource(Variation::Nested))
-                .collect::<Vec<_>>(),
+                .collect(),
         )),
         errors: None,
         links: Some(Links(
@@ -208,6 +219,15 @@ async fn get_relationships_host(
     Ok((StatusCode::OK, Json(document)).into_response())
 }
 
+#[tracing::instrument(skip(_app_state))]
+async fn update_relationships_host(
+    State(_app_state): State<AppState>,
+    local_id: LocalId,
+    Path(lobby_id): Path<LobbyId>,
+) -> Result<Response, ApiError> {
+    Ok(StatusCode::NOT_IMPLEMENTED.into_response())
+}
+
 #[tracing::instrument(skip(app_state))]
 async fn get_host(
     State(app_state): State<AppState>,
@@ -227,6 +247,68 @@ async fn get_host(
         errors: None,
         links: Some(Links(
             [("self".to_string(), format!("{PATH}/{}/host", lobby_id.0))].into(),
+        )),
+    };
+
+    Ok((StatusCode::OK, Json(document)).into_response())
+}
+
+#[tracing::instrument(skip(_app_state))]
+async fn get_relationships_members(
+    State(_app_state): State<AppState>,
+    local_id: LocalId,
+    Path(lobby_id): Path<LobbyId>,
+) -> Result<Response, ApiError> {
+    Ok(StatusCode::NOT_IMPLEMENTED.into_response())
+}
+
+#[tracing::instrument(skip(_app_state))]
+async fn update_relationships_members(
+    State(_app_state): State<AppState>,
+    local_id: LocalId,
+    Path(lobby_id): Path<LobbyId>,
+) -> Result<Response, ApiError> {
+    Ok(StatusCode::NOT_IMPLEMENTED.into_response())
+}
+
+#[tracing::instrument(skip(app_state))]
+async fn get_members(
+    State(app_state): State<AppState>,
+    local_id: LocalId,
+    Path(lobby_id): Path<LobbyId>,
+    Query(pagination): Query<Pagination>,
+) -> Result<Response, ApiError> {
+    let keyset_pagination = pagination.try_into()?;
+
+    let (users, after) =
+        Database::query_lobby_member(&app_state.postgres_pool, lobby_id, keyset_pagination).await?;
+
+    let document = ResourcesDocument {
+        data: Some(Resources::Collection(
+            users
+                .iter()
+                .map(|user| user.to_resource(Variation::Nested))
+                .collect(),
+        )),
+        errors: None,
+        links: Some(Links(
+            [
+                (
+                    "self".to_string(),
+                    format!(
+                        "{PATH}/{}/members?page[after]={}&page[size]={}",
+                        lobby_id.0, keyset_pagination.id, keyset_pagination.limit
+                    ),
+                ),
+                (
+                    "next".to_string(),
+                    format!(
+                        "{PATH}/{}/members?page[after]={after}&page[size]={}",
+                        lobby_id.0, keyset_pagination.limit
+                    ),
+                ),
+            ]
+            .into(),
         )),
     };
 
