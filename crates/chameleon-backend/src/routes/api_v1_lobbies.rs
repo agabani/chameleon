@@ -7,7 +7,8 @@ use axum::{
     Json, Router,
 };
 use chameleon_protocol::{
-    attributes::LobbyAttributes,
+    attributes::{ChatMessageAttributes, LobbyAttributes},
+    frames::{LobbyChatMessage, LobbyRequest},
     jsonapi::{
         self, Links, Pagination, Relationship, Relationships, ResourceIdentifiers,
         ResourceIdentifiersDocument, Resources, ResourcesDocument,
@@ -49,6 +50,8 @@ pub fn router() -> Router<AppState> {
             patch(update_relationships_members),
         )
         .route("/:lobby_id/members", get(get_members))
+        // action: chat message
+        .route("/:lobby_id/actions/chat_message", post(create_chat_message))
 }
 
 #[tracing::instrument(skip(app_state))]
@@ -222,7 +225,7 @@ async fn get_relationships_host(
 #[tracing::instrument(skip(_app_state))]
 async fn update_relationships_host(
     State(_app_state): State<AppState>,
-    local_id: LocalId,
+    user_id: UserId,
     Path(lobby_id): Path<LobbyId>,
 ) -> Result<Response, ApiError> {
     Ok(StatusCode::NOT_IMPLEMENTED.into_response())
@@ -265,7 +268,7 @@ async fn get_relationships_members(
 #[tracing::instrument(skip(_app_state))]
 async fn update_relationships_members(
     State(_app_state): State<AppState>,
-    local_id: LocalId,
+    user_id: UserId,
     Path(lobby_id): Path<LobbyId>,
 ) -> Result<Response, ApiError> {
     Ok(StatusCode::NOT_IMPLEMENTED.into_response())
@@ -313,6 +316,40 @@ async fn get_members(
     };
 
     Ok((StatusCode::OK, Json(document)).into_response())
+}
+
+#[tracing::instrument(skip(app_state))]
+async fn create_chat_message(
+    State(app_state): State<AppState>,
+    user_id: UserId,
+    Path(lobby_id): Path<LobbyId>,
+    Json(document): Json<ResourcesDocument<ChatMessageAttributes>>,
+) -> Result<Response, ApiError> {
+    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
+
+    if !Database::is_lobby_member(&app_state.postgres_pool, lobby_id, user_id).await? {
+        return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
+    }
+
+    let message = document
+        .try_get_resources()
+        .and_then(Resources::try_get_individual)
+        .and_then(|r| r.try_get_attribute(|a| a.message.as_ref(), "message", "Message"))?
+        .clone();
+
+    Database::notify_lobby(
+        &app_state.postgres_pool,
+        lobby.id,
+        LobbyRequest::ChatMessage(LobbyChatMessage {
+            user_id: Some(user_id.0.to_string()),
+            message: Some(message),
+        }),
+    )
+    .await?;
+
+    Ok(StatusCode::ACCEPTED.into_response())
 }
 
 impl Lobby {

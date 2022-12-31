@@ -50,7 +50,7 @@ async fn get_one(
 async fn get_one_handler(app_state: AppState, lobby_id: LobbyId, web_socket: WebSocket) {
     let (mut sink, mut stream) = web_socket.split();
 
-    let mut _listener = Database::listener(&app_state.postgres_pool)
+    let mut listener = Database::listener(&app_state.postgres_pool)
         .await
         .expect("TODO: Failed to get listener");
 
@@ -94,29 +94,58 @@ async fn get_one_handler(app_state: AppState, lobby_id: LobbyId, web_socket: Web
 
     tokio::spawn(
         async move {
-            while let Some(message) = stream.next().await {
-                let Ok(message) = message else {
-                return;
-            };
+            listener
+                .listen(&format!("/lobbies/{}", lobby_id.0))
+                .await
+                .expect("TODO: failed to listen");
 
-                match message {
-                    Message::Text(text) => {
-                        match LobbyFrame::try_from_str(&text) {
-                            Ok(frame) => {
-                                tracing::info!(frame =? frame, "frame received");
-                            }
-                            Err(_) => {
-                                sink.send(Message::Text(
-                                    LobbyFrame::parse_error().to_string().unwrap(),
-                                ))
-                                .await
-                                .expect("TODO: Failed to resend error");
-                            }
+            let mut notify_stream = listener.into_stream();
+
+            loop {
+                tokio::select! {
+                    message = notify_stream.next() => {
+                        let Some(Ok(message)) = message else {
+                            // stream closed
+                            return;
                         };
+
+                        let Ok(frame) = LobbyFrame::try_from_str(message.payload()) else {
+                            // malformed frame
+                            return;
+                        };
+
+                        sink.send(Message::Text(
+                            frame.to_string().unwrap(),
+                        ))
+                        .await
+                        .unwrap();
                     }
-                    Message::Close(reason) => tracing::info!(reason =? reason, "close"),
-                    _ => {}
-                }
+                    message = stream.next() => {
+                        let Some(Ok(message)) = message else {
+                            // stream closed
+                            return;
+                        };
+
+                        match message {
+                            Message::Text(text) => {
+                                match LobbyFrame::try_from_str(&text) {
+                                    Ok(frame) => {
+                                        tracing::info!(frame =? frame, "frame received");
+                                    }
+                                    Err(_) => {
+                                        sink.send(Message::Text(
+                                            LobbyFrame::parse_error().to_string().unwrap(),
+                                        ))
+                                        .await
+                                        .expect("TODO: Failed to resend error");
+                                    }
+                                };
+                            }
+                            Message::Close(reason) => tracing::info!(reason =? reason, "close"),
+                            _ => {}
+                        }
+                    }
+                };
             }
         }
         .in_current_span(),
@@ -144,7 +173,9 @@ async fn authentication(
 
         let id = request.id;
 
-        let LobbyRequest::Authenticate(request) = request.data;
+        let LobbyRequest::Authenticate(request) = request.data else {
+            continue;
+        };
 
         let Some(local_id) = request.local_id else {
             sink.send(Message::Text(LobbyFrame::parse_error().to_string().unwrap())).await.unwrap();

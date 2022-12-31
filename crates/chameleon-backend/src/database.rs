@@ -1,4 +1,5 @@
 use chameleon_protocol::{
+    frames::{LobbyFrame, LobbyRequest},
     jsonapi::{self, Source},
     ws,
 };
@@ -25,6 +26,28 @@ impl Database {
             .execute(conn)
             .await
             .map(|_| ())
+    }
+
+    pub async fn notify_lobby<'c, E>(
+        conn: E,
+        lobby_id: LobbyId,
+        lobby_request: LobbyRequest,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        let frame = LobbyFrame::new_request(None, lobby_request)
+            .to_string()
+            .unwrap();
+
+        sqlx::query!(
+            r#"SELECT pg_notify($1, $2)"#,
+            format!("/lobbies/{}", lobby_id.0),
+            frame
+        )
+        .execute(conn)
+        .await
+        .map(|_| ())
     }
 
     pub async fn insert_lobby<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>

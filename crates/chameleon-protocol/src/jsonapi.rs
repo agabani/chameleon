@@ -125,7 +125,16 @@ pub struct Source {
 }
 
 impl Error {
-    pub fn not_found(_name: &str, display: &str) -> Self {
+    pub fn forbidden() -> Error {
+        Error {
+            status: 403,
+            source: None,
+            title: Some("Forbidden".to_string()),
+            detail: Some("You are not authorized to perform this action".to_string()),
+        }
+    }
+
+    pub fn not_found(_name: &str, display: &str) -> Error {
         Error {
             status: 404,
             source: None,
@@ -318,14 +327,14 @@ impl<T> Resources<T> {
 }
 
 impl<T> ResourcesDocument<T> {
-    pub fn not_found(_name: &str, display: &str) -> ResourcesDocument<T> {
+    pub fn forbidden() -> ResourcesDocument<T> {
         ResourcesDocument {
             data: None,
             errors: Some(Errors(vec![Error {
-                status: 404,
+                status: 403,
                 source: None,
-                title: Some("Not Found".to_string()),
-                detail: Some(format!("{display} does not exist")),
+                title: Some("Forbidden".to_string()),
+                detail: Some("You are not authorized to perform this action".to_string()),
             }])),
             links: None,
         }
