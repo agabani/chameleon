@@ -34,6 +34,20 @@
     },
     "query": "SELECT TRUE member\n            FROM lobby l\n                     JOIN lobby_member lm on l.id = lm.lobby_id\n                     JOIN \"user\" u on u.id = lm.user_id\n            WHERE l.public_id = $1\n              AND u.public_id = $2;"
   },
+  "17a5ef1e426215396af7ad9dc08945733f360a1f29c65bc5f8d07d497de9b109": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Bool"
+        ]
+      }
+    },
+    "query": "INSERT INTO lobby_member (lobby_id, user_id, host)\n            VALUES ((SELECT id FROM lobby WHERE public_id = $1),\n                    (SELECT id FROM \"user\" WHERE public_id = $2),\n                    $3)\n            ON CONFLICT DO NOTHING;"
+  },
   "8e1aa72d21270b68b564bffd2c2d9050876551939405c089c929e271df28a796": {
     "describe": {
       "columns": [],

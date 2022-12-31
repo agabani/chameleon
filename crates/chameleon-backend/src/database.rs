@@ -67,7 +67,7 @@ impl Database {
         .map(|_| ())
     }
 
-    pub async fn insert_lobby_member<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
+    pub async fn insert_lobby_host<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
@@ -79,6 +79,29 @@ impl Database {
             lobby.id.0,
             lobby.host.0,
             true
+        )
+        .execute(conn)
+        .await
+        .map(|_| ())
+    }
+
+    pub async fn insert_lobby_member<'c, E>(
+        conn: E,
+        lobby: &Lobby,
+        user: &User,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"INSERT INTO lobby_member (lobby_id, user_id, host)
+            VALUES ((SELECT id FROM lobby WHERE public_id = $1),
+                    (SELECT id FROM "user" WHERE public_id = $2),
+                    $3)
+            ON CONFLICT DO NOTHING;"#,
+            lobby.id.0,
+            user.id.0,
+            false
         )
         .execute(conn)
         .await

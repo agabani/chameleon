@@ -33,14 +33,14 @@ pub fn router() -> Router<AppState> {
         .route("/", post(create_one))
         .route("/:lobby_id", get(get_one))
         .route("/:lobby_id", patch(update_one))
-        // relationship: host
+        // relationships: host
         .route("/:lobby_id/relationships/host", get(get_relationships_host))
         .route(
             "/:lobby_id/relationships/host",
             patch(update_relationships_host),
         )
         .route("/:lobby_id/host", get(get_host))
-        // relationship: members
+        // relationships: members
         .route(
             "/:lobby_id/relationships/members",
             get(get_relationships_members),
@@ -50,8 +50,9 @@ pub fn router() -> Router<AppState> {
             patch(update_relationships_members),
         )
         .route("/:lobby_id/members", get(get_members))
-        // action: chat message
+        // actions
         .route("/:lobby_id/actions/chat_message", post(create_chat_message))
+        .route("/:lobby_id/actions/join", post(create_lobby_member))
 }
 
 #[tracing::instrument(skip(app_state))]
@@ -76,7 +77,7 @@ async fn create_one(
 
             let mut conn = app_state.postgres_pool.begin().await?;
             Database::insert_lobby(&mut conn, &lobby).await?;
-            Database::insert_lobby_member(&mut conn, &lobby).await?;
+            Database::insert_lobby_host(&mut conn, &lobby).await?;
             conn.commit().await?;
 
             let document = ResourcesDocument {
@@ -372,6 +373,45 @@ async fn create_chat_message(
         }),
     )
         .into_response())
+}
+
+#[tracing::instrument(skip(app_state))]
+async fn create_lobby_member(
+    State(app_state): State<AppState>,
+    user_id: UserId,
+    Path(lobby_id): Path<LobbyId>,
+) -> Result<Response, ApiError> {
+    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
+
+    let user = Database::select_user(&app_state.postgres_pool, user_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
+
+    Database::insert_lobby_member(&app_state.postgres_pool, &lobby, &user).await?;
+
+    let document = ResourceIdentifiersDocument {
+        data: Some(ResourceIdentifiers::Individual(
+            user.id.to_resource_identifier(),
+        )),
+        errors: None,
+        links: Some(Links(
+            [
+                (
+                    "self".to_string(),
+                    format!("{PATH}/{}/relationships/members", lobby.id.0),
+                ),
+                (
+                    "related".to_string(),
+                    format!("{PATH}/{}/members", lobby.id.0),
+                ),
+            ]
+            .into(),
+        )),
+    };
+
+    Ok((StatusCode::OK, Json(document)).into_response())
 }
 
 impl Lobby {

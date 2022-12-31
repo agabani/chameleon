@@ -292,6 +292,21 @@ impl ResourceIdentifiers {
     }
 }
 
+impl ResourceIdentifiersDocument {
+    pub fn internal_server_error() -> ResourceIdentifiersDocument {
+        ResourceIdentifiersDocument {
+            data: None,
+            errors: Some(Errors(vec![Error {
+                status: 500,
+                source: None,
+                title: Some("Internal Server Error".to_string()),
+                detail: Some("An unexpected error has occurred".to_string()),
+            }])),
+            links: None,
+        }
+    }
+}
+
 impl<T> Resources<T> {
     pub fn try_get_collection(&self) -> Result<&Vec<Resource<T>>, Box<Error>> {
         match self {

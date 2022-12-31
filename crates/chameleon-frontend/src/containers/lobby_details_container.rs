@@ -1,8 +1,12 @@
-use chameleon_protocol::jsonapi::Resources;
+use chameleon_protocol::jsonapi::{ResourceIdentifiersDocument, Resources};
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
+use yew_router::prelude::*;
 
 use crate::{
+    app::Route,
     components::lobby_details::LobbyDetails,
+    contexts::network::NetworkContext,
     hooks::lobby::{use_lobby, use_lobby_host},
 };
 
@@ -22,8 +26,32 @@ pub fn LobbyDetailsContainer(props: &Props) -> Html {
 
 #[function_component]
 fn Content(props: &Props) -> HtmlResult {
+    let network = use_context::<NetworkContext>().unwrap();
+    let navigator = use_navigator().unwrap();
     let lobby = use_lobby(&props.id)?;
     let host = use_lobby_host(&props.id)?;
+    let onclick = {
+        use_callback(
+            move |_: MouseEvent, id| {
+                let id = id.clone();
+                let navigator = navigator.clone();
+                let network = network.clone();
+                spawn_local(async move {
+                    let document = network
+                        .action_lobby_join(&id)
+                        .await
+                        .unwrap_or_else(|_| ResourceIdentifiersDocument::internal_server_error());
+
+                    if let Some(errors) = document.errors {
+                        gloo::console::error!(format!("{errors:?}"));
+                    } else {
+                        navigator.push(&Route::Lobby { id: id.to_string() });
+                    }
+                });
+            },
+            props.id.clone(),
+        )
+    };
 
     let id = lobby
         .try_get_resources()
@@ -47,7 +75,7 @@ fn Content(props: &Props) -> HtmlResult {
         .unwrap();
 
     Ok(html! {
-       <LobbyDetails id={id} name={name} host={host} />
+       <LobbyDetails id={id} name={name} host={host} onclick={onclick} />
     })
 }
 

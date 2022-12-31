@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use chameleon_protocol::{
     attributes::{ChatMessageAttributes, LobbyAttributes, UserAttributes},
-    jsonapi::ResourcesDocument,
+    jsonapi::{ResourceIdentifiersDocument, ResourcesDocument},
     openid_connect,
 };
 use gloo::{
@@ -52,6 +52,18 @@ impl NetworkState {
         Request::post(&format!("/api/v1/lobbies/{id}/actions/chat_message"))
             .authentication_headers()
             .json(document)?
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
+    pub async fn action_lobby_join(
+        &self,
+        id: &str,
+    ) -> Result<ResourceIdentifiersDocument, gloo::net::Error> {
+        Request::post(&format!("/api/v1/lobbies/{id}/actions/join"))
+            .authentication_headers()
             .send()
             .await?
             .json()
