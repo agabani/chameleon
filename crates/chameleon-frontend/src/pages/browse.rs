@@ -1,7 +1,8 @@
 use yew::prelude::*;
 
-use crate::components::{
-    lobby_details::LobbyDetails, lobby_list_infinite_scrolling::LobbyListInfiniteScrolling,
+use crate::{
+    components::lobby_list_infinite_scrolling::LobbyListInfiniteScrolling,
+    containers::lobby_details_container::LobbyDetailsContainer,
 };
 
 #[function_component]
@@ -24,7 +25,7 @@ pub fn Browse() -> Html {
             {
                 if let Some(selected) = &state.selected {
                     html! {
-                        <LobbyDetails id={selected} />
+                        <LobbyDetailsContainer id={selected} />
                     }
                 } else {
                     html! {}
