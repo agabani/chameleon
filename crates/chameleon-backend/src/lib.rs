@@ -17,7 +17,7 @@ use axum::{
 use axum_extra::routing::SpaRouter;
 use routes::{
     api_v1_lobbies, api_v1_message, api_v1_ping, api_v1_telemetry, api_v1_userinfo, api_v1_users,
-    ws_v1,
+    ws_v1, ws_v1_lobbies,
 };
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 
@@ -42,6 +42,7 @@ pub async fn app() {
         .nest(api_v1_lobbies::PATH, api_v1_lobbies::router())
         .nest(api_v1_users::PATH, api_v1_users::router())
         .nest(api_v1_userinfo::PATH, api_v1_userinfo::router())
+        .nest(ws_v1_lobbies::PATH, ws_v1_lobbies::router())
         .route("/api/v1/message", post(api_v1_message::post))
         .route("/api/v1/ping", get(api_v1_ping::get))
         .route("/api/v1/telemetry", post(api_v1_telemetry::post))
