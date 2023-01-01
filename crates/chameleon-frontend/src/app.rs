@@ -7,7 +7,10 @@ use crate::{
         theme_picker::ThemePicker,
     },
     contexts::{current_user::CurrentUserProvider, network::NetworkProvider, theme::ThemeProvider},
-    pages::{browse::Browse, host::Host, lobby::Lobby, main_menu::MainMenu, name::Name},
+    pages::{
+        browse::Browse, host::Host, lobby::Lobby, main_menu::MainMenu, name::Name,
+        name_invite::NameInvite,
+    },
 };
 
 #[function_component]
@@ -32,14 +35,19 @@ pub fn App() -> Html {
                             render={|_| html!{ <Browse /> }}
                         />
                     },
-                    Route::Lobby { id } => html! {
-                        <AuthenticationSwitch
-                            challenge={|_| html!{ <Name /> }}
-                            render={move |_| {
-                                let id = id.clone();
-                                html!{ <Lobby id={id} /> }
-                            }}
-                        />
+                    Route::Lobby { id } => {
+                        let id1 = AttrValue::from(id);
+                        let id2 = id1.clone();
+                        html! {
+                           <AuthenticationSwitch
+                                challenge={move |_| {
+                                    html!{ <NameInvite id={id1.clone()} /> }
+                                }}
+                                render={move |_| {
+                                    html!{ <Lobby id={id2.clone()} /> }
+                                }}
+                            />
+                        }
                     },
                     Route::Host =>  html !{
                         <AuthenticationSwitch

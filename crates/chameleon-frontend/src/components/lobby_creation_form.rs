@@ -12,9 +12,9 @@ pub struct Props {
 
 #[function_component]
 pub fn LobbyCreationForm(props: &Props) -> Html {
-    let name = use_input(String::new());
-    let passcode = use_input(String::new());
-    let require_passcode = use_input(String::new());
+    let name = use_input(String::new().into());
+    let passcode = use_input(String::new().into());
+    let require_passcode = use_input(String::new().into());
 
     let onsubmit = use_callback(
         |event: SubmitEvent, (name, passcode, require_passcode, callback)| {

@@ -10,7 +10,7 @@ pub struct Props {
 
 #[function_component]
 pub fn LobbyChatInput(props: &Props) -> Html {
-    let message = use_input(String::new());
+    let message = use_input(String::new().into());
     let onsubmit = use_callback(
         |event: SubmitEvent, (state, callback)| {
             event.prevent_default();

@@ -13,7 +13,7 @@ pub struct Props {
 
 #[function_component]
 pub fn LobbyDetails(props: &Props) -> Html {
-    let passcode = use_input(String::new());
+    let passcode = use_input(String::new().into());
 
     let onsubmit = use_callback(
         move |event: SubmitEvent, (callback, require_passcode, passcode)| {
