@@ -4,6 +4,7 @@ use crate::hooks::input::use_input;
 
 #[derive(PartialEq, Properties)]
 pub struct Props {
+    pub disabled: bool,
     pub onsubmit: Callback<AttrValue>,
 }
 
@@ -21,8 +22,14 @@ pub fn LobbyChatInput(props: &Props) -> Html {
     html! {
         <div class="lobby-chat-input">
             <form onsubmit={onsubmit}>
-                <input ref={message.node_ref} onchange={message.callback} value={message.state.to_string()} />
-                <button type="submit">{ "send" }</button>
+                <input
+                    disabled={props.disabled}
+                    ref={message.node_ref}
+                    onchange={message.callback}
+                    value={message.state.to_string()} />
+                <button
+                    disabled={props.disabled}
+                    type="submit">{ "send" }</button>
             </form>
         </div>
     }

@@ -4,11 +4,7 @@ use chameleon_protocol::{
     attributes::{LobbyAttributes, UserAttributes},
     jsonapi::ResourcesDocument,
 };
-use futures::{
-    channel::mpsc::{channel, Receiver, Sender},
-    FutureExt, SinkExt, StreamExt,
-};
-use gloo::net::websocket::Message;
+use futures::channel::mpsc::{Receiver, Sender};
 use wasm_bindgen_futures::spawn_local;
 use yew::{
     prelude::*,
@@ -100,66 +96,8 @@ pub fn use_lobby_subscription(
     let network = use_context::<NetworkContext>().unwrap();
     let state = use_state(|| {
         let websocket = network.subscribe_lobby(id).unwrap();
-
-        let (tx_send, mut tx_recv) = channel::<String>(1000);
-        let (mut rx_send, rx_recv) = channel::<String>(1000);
-
-        spawn_local(async move {
-            let (mut sink, mut stream) = websocket.split();
-
-            while futures::select! {
-                message = tx_recv.next() => {
-                    match message {
-                        Some(message) => {
-                            match sink.send(Message::Text(message)).await {
-                                Ok(_) => true,
-                                Err(error) => {
-                                    gloo::console::error!(format!("{error:?}"));
-                                    false
-                                }
-                            }
-                        },
-                        None => false
-                    }
-                },
-                message = stream.next().fuse() => {
-                    match message {
-                        Some(message) => {
-                            match message {
-                                Ok(message) => {
-                                    match message {
-                                        Message::Text(message) => {
-                                            match rx_send.try_send(message) {
-                                                Ok(_) => true,
-                                                Err(error) => {
-                                                    gloo::console::error!(format!("{error:?}"));
-                                                    false
-                                                }
-                                            }
-                                        },
-                                        Message::Bytes(_) => true
-                                    }
-                                },
-                                Err(error) => {
-                                    gloo::console::error!(format!("{error:?}"));
-                                    false
-                                },
-                            }
-                        },
-                        None => false
-                    }
-                },
-            } {}
-
-            let websocket = sink.reunite(stream).expect("Failed to reunite web socket");
-
-            websocket
-                .close(None, None)
-                .expect("Failed to close web socket");
-        });
-
-        (Mutex::new(tx_send), Mutex::new(Some(rx_recv)))
+        let (send, recv) = network.web_socket_to_channels(websocket);
+        (Mutex::new(send), Mutex::new(Some(recv)))
     });
-
     state
 }

@@ -5,12 +5,20 @@ use chameleon_protocol::{
     jsonapi::{ResourceIdentifiersDocument, ResourcesDocument},
     openid_connect,
 };
+use futures::{
+    channel::mpsc::{channel, Receiver, Sender},
+    FutureExt, SinkExt, StreamExt,
+};
 use gloo::{
-    net::{http::Request, websocket::futures::WebSocket},
+    net::{
+        http::Request,
+        websocket::{futures::WebSocket, Message},
+    },
     storage::{errors::StorageError, LocalStorage, Storage},
     utils::document,
 };
 use uuid::Uuid;
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 #[derive(Default, PartialEq)]
@@ -215,6 +223,71 @@ impl NetworkState {
     #[allow(clippy::unused_self)]
     pub fn local_id(&self) -> Result<String, StorageError> {
         local_id()
+    }
+
+    #[allow(clippy::unused_self)]
+    pub fn web_socket_to_channels(
+        &self,
+        web_socket: WebSocket,
+    ) -> (Sender<String>, Receiver<String>) {
+        let (tx_send, mut tx_recv) = channel::<String>(1000);
+        let (mut rx_send, rx_recv) = channel::<String>(1000);
+
+        spawn_local(async move {
+            let (mut sink, mut stream) = web_socket.split();
+
+            while futures::select! {
+                message = tx_recv.next() => {
+                    match message {
+                        Some(message) => {
+                            match sink.send(Message::Text(message)).await {
+                                Ok(_) => true,
+                                Err(error) => {
+                                    gloo::console::error!(format!("{error:?}"));
+                                    false
+                                }
+                            }
+                        },
+                        None => false
+                    }
+                },
+                message = stream.next().fuse() => {
+                    match message {
+                        Some(message) => {
+                            match message {
+                                Ok(message) => {
+                                    match message {
+                                        Message::Text(message) => {
+                                            match rx_send.try_send(message) {
+                                                Ok(_) => true,
+                                                Err(error) => {
+                                                    gloo::console::error!(format!("{error:?}"));
+                                                    false
+                                                }
+                                            }
+                                        },
+                                        Message::Bytes(_) => true
+                                    }
+                                },
+                                Err(error) => {
+                                    gloo::console::error!(format!("{error:?}"));
+                                    false
+                                },
+                            }
+                        },
+                        None => false
+                    }
+                },
+            } {}
+
+            let web_socket = sink.reunite(stream).expect("Failed to reunite web socket");
+
+            web_socket
+                .close(None, None)
+                .expect("Failed to close web socket");
+        });
+
+        (tx_send, rx_recv)
     }
 }
 
