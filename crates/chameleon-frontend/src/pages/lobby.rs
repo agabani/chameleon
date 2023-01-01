@@ -1,4 +1,5 @@
 use chameleon_protocol::jsonapi::Resources;
+use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 
 use crate::{
@@ -6,6 +7,7 @@ use crate::{
         lobby_chat_list_container::LobbyChatListContainer,
         lobby_member_list_container::LobbyMemberListContainer,
     },
+    contexts::network::NetworkContext,
     hooks::lobby::{use_lobby, use_lobby_host},
 };
 
@@ -25,6 +27,7 @@ pub fn Lobby(props: &Props) -> Html {
 
 #[function_component]
 fn Content(props: &Props) -> HtmlResult {
+    let network = use_context::<NetworkContext>().unwrap();
     let lobby = use_lobby(&props.id)?;
     let host = use_lobby_host(&props.id)?;
 
@@ -46,11 +49,25 @@ fn Content(props: &Props) -> HtmlResult {
         .and_then(|r| r.try_get_attribute(|a| a.name.as_ref(), "name", "Name"))
         .unwrap();
 
+    let onclick = {
+        use_callback(
+            move |_, id| {
+                let network = network.clone();
+                let id = id.clone();
+                spawn_local(async move {
+                    network.action_lobby_leave(&id).await.unwrap();
+                });
+            },
+            props.id.clone(),
+        )
+    };
+
     Ok(html! {
         <div class="lobby">
             <div>{ id }</div>
             <div>{ name }</div>
             <div>{ host }</div>
+            <div><button onclick={onclick}>{ "leave" }</button></div>
             <div>{ "=== members ===" }</div>
             <LobbyMemberListContainer id={props.id.clone()} />
             <div>{ "=== chat ===" }</div>

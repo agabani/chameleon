@@ -70,6 +70,18 @@ impl NetworkState {
             .await
     }
 
+    pub async fn action_lobby_leave(
+        &self,
+        id: &str,
+    ) -> Result<ResourceIdentifiersDocument, gloo::net::Error> {
+        Request::post(&format!("/api/v1/lobbies/{id}/actions/leave"))
+            .authentication_headers()
+            .send()
+            .await?
+            .json()
+            .await
+    }
+
     pub async fn create_lobby(
         &self,
         document: &ResourcesDocument<LobbyAttributes>,

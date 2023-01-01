@@ -50,6 +50,27 @@ impl Database {
         .map(|_| ())
     }
 
+    pub async fn delete_lobby_member<'c, E>(
+        conn: E,
+        lobby: &Lobby,
+        user: &User,
+    ) -> Result<bool, sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"DELETE
+            FROM lobby_member
+            WHERE lobby_id = ((SELECT id FROM lobby WHERE public_id = $1))
+                AND user_id = ((SELECT id FROM "user" WHERE public_id = $2));"#,
+            lobby.id.0,
+            user.id.0
+        )
+        .execute(conn)
+        .await
+        .map(|result| result.rows_affected() > 0)
+    }
+
     pub async fn insert_lobby<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,

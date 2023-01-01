@@ -8,7 +8,7 @@ use axum::{
 };
 use chameleon_protocol::{
     attributes::{ChatMessageAttributes, LobbyAttributes},
-    frames::{LobbyChatMessage, LobbyRequest, LobbyUserJoined},
+    frames::{LobbyChatMessage, LobbyRequest, LobbyUserJoined, LobbyUserLeft},
     jsonapi::{
         self, Links, Pagination, Relationship, Relationships, ResourceIdentifiers,
         ResourceIdentifiersDocument, Resources, ResourcesDocument,
@@ -53,6 +53,7 @@ pub fn router() -> Router<AppState> {
         // actions
         .route("/:lobby_id/actions/chat_message", post(create_chat_message))
         .route("/:lobby_id/actions/join", post(create_lobby_member))
+        .route("/:lobby_id/actions/leave", post(delete_lobby_member))
 }
 
 #[tracing::instrument(skip(app_state))]
@@ -419,6 +420,48 @@ async fn create_lobby_member(
         }),
     )
     .await?;
+
+    Ok((StatusCode::OK, Json(document)).into_response())
+}
+
+#[tracing::instrument(skip(app_state))]
+async fn delete_lobby_member(
+    State(app_state): State<AppState>,
+    user_id: UserId,
+    Path(lobby_id): Path<LobbyId>,
+) -> Result<Response, ApiError> {
+    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
+
+    let user = Database::select_user(&app_state.postgres_pool, user_id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
+
+    if lobby.host == user.id {
+        return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
+    }
+
+    if !Database::is_lobby_member(&app_state.postgres_pool, lobby_id, user_id).await? {
+        return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
+    }
+
+    Database::delete_lobby_member(&app_state.postgres_pool, &lobby, &user).await?;
+
+    Database::notify_lobby(
+        &app_state.postgres_pool,
+        lobby.id,
+        LobbyRequest::UserLeft(LobbyUserLeft {
+            user_id: Some(user_id.0.to_string()),
+        }),
+    )
+    .await?;
+
+    let document = ResourceIdentifiersDocument {
+        data: None,
+        errors: None,
+        links: None,
+    };
 
     Ok((StatusCode::OK, Json(document)).into_response())
 }

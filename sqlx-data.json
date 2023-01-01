@@ -48,6 +48,19 @@
     },
     "query": "INSERT INTO lobby_member (lobby_id, user_id, host)\n            VALUES ((SELECT id FROM lobby WHERE public_id = $1),\n                    (SELECT id FROM \"user\" WHERE public_id = $2),\n                    $3)\n            ON CONFLICT DO NOTHING;"
   },
+  "77480afa3e30f6efab2f1b4dfa7bb4f41d5637260eb417060da03a52cafaaa14": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "DELETE\n            FROM lobby_member\n            WHERE lobby_id = ((SELECT id FROM lobby WHERE public_id = $1))\n                AND user_id = ((SELECT id FROM \"user\" WHERE public_id = $2));"
+  },
   "8e1aa72d21270b68b564bffd2c2d9050876551939405c089c929e271df28a796": {
     "describe": {
       "columns": [],
