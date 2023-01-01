@@ -17,7 +17,8 @@ pub fn Host() -> Html {
     let navigator = use_navigator().unwrap();
     let network = use_context::<NetworkContext>().unwrap();
     let onsubmit = use_callback(
-        |name: AttrValue, (network, navigator, disabled)| {
+        |(name, passcode, require_passcode): (AttrValue, AttrValue, bool),
+         (network, navigator, disabled)| {
             disabled.set(true);
 
             let disabled = disabled.clone();
@@ -31,6 +32,8 @@ pub fn Host() -> Html {
                             type_: Some("lobby".to_string()),
                             attributes: Some(LobbyAttributes {
                                 name: Some(name.to_string()),
+                                passcode: Some(passcode.to_string()),
+                                require_passcode: Some(require_passcode),
                             }),
                             links: None,
                             relationships: None,

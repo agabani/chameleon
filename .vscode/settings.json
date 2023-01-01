@@ -7,6 +7,7 @@
     "onclick",
     "onscroll",
     "onsubmit",
+    "passcode",
     "routable",
     "rustup",
     "serde",

@@ -69,11 +69,21 @@ async fn create_one(
         Resources::Individual(resource) => {
             let _type = resource.try_get_field(|r| r.type_.as_ref(), "type", "Type")?;
             let name = resource.try_get_attribute(|a| a.name.as_ref(), "name", "Name")?;
+            let passcode = resource
+                .try_get_attribute(|a| a.passcode.as_ref(), "passcode", "Passcode")
+                .ok();
+            let require_passcode = resource.try_get_attribute(
+                |a| a.require_passcode.as_ref(),
+                "require_passcode",
+                "Require Passcode",
+            )?;
 
             let lobby = Lobby {
                 id: LobbyId::random(),
                 name: name.clone(),
                 host: user_id,
+                passcode: passcode.cloned(),
+                require_passcode: *require_passcode,
             };
 
             let mut conn = app_state.postgres_pool.begin().await?;
@@ -381,6 +391,7 @@ async fn create_lobby_member(
     State(app_state): State<AppState>,
     user_id: UserId,
     Path(lobby_id): Path<LobbyId>,
+    Json(document): Json<ResourcesDocument<LobbyAttributes>>,
 ) -> Result<Response, ApiError> {
     let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
         .await?
@@ -389,6 +400,17 @@ async fn create_lobby_member(
     let user = Database::select_user(&app_state.postgres_pool, user_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
+
+    if lobby.require_passcode {
+        let passcode = document
+            .try_get_resources()?
+            .try_get_individual()?
+            .try_get_attribute(|a| a.passcode.as_ref(), "passcode", "Passcode")?;
+
+        if lobby.passcode.as_ref().unwrap() != passcode {
+            return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
+        }
+    }
 
     Database::insert_lobby_member(&app_state.postgres_pool, &lobby, &user).await?;
 
@@ -472,6 +494,15 @@ impl Lobby {
             id: self.id,
             name: attributes.name.as_ref().unwrap_or(&self.name).clone(),
             host: self.host,
+            passcode: attributes
+                .passcode
+                .as_ref()
+                .or(self.passcode.as_ref())
+                .cloned(),
+            require_passcode: *attributes
+                .require_passcode
+                .as_ref()
+                .unwrap_or(&self.require_passcode),
         }
     }
 }
@@ -486,6 +517,8 @@ impl ToResource for Lobby {
     fn __attributes(&self) -> Option<Self::Attributes> {
         Some(Self::Attributes {
             name: Some(self.name.to_string()),
+            passcode: None,
+            require_passcode: Some(self.require_passcode),
         })
     }
 

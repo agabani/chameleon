@@ -10,6 +10,12 @@ pub struct ChatMessageAttributes {
 pub struct LobbyAttributes {
     #[serde(rename = "name")]
     pub name: Option<String>,
+
+    #[serde(rename = "passcode")]
+    pub passcode: Option<String>,
+
+    #[serde(rename = "require_passcode")]
+    pub require_passcode: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]

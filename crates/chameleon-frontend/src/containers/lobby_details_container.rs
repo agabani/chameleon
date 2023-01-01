@@ -1,11 +1,14 @@
-use chameleon_protocol::jsonapi::{ResourceIdentifiersDocument, Resources};
+use chameleon_protocol::{
+    attributes,
+    jsonapi::{self, ResourceIdentifiersDocument, Resources, ResourcesDocument},
+};
 use wasm_bindgen_futures::spawn_local;
 use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::{
     app::Route,
-    components::lobby_details::LobbyDetails,
+    components::lobby_details::{LobbyDetails, LobbyDetailsJoinEvent},
     contexts::network::NetworkContext,
     hooks::lobby::{use_lobby, use_lobby_host},
 };
@@ -32,13 +35,30 @@ fn Content(props: &Props) -> HtmlResult {
     let host = use_lobby_host(&props.id)?;
     let onclick = {
         use_callback(
-            move |_: MouseEvent, id| {
+            move |event: LobbyDetailsJoinEvent, id| {
                 let id = id.clone();
                 let navigator = navigator.clone();
                 let network = network.clone();
                 spawn_local(async move {
                     let document = network
-                        .action_lobby_join(&id)
+                        .action_lobby_join(
+                            &id,
+                            &ResourcesDocument {
+                                data: Some(Resources::Individual(jsonapi::Resource {
+                                    id: None,
+                                    type_: None,
+                                    attributes: Some(attributes::LobbyAttributes {
+                                        name: None,
+                                        passcode: event.passcode.map(|f| f.to_string()),
+                                        require_passcode: None,
+                                    }),
+                                    links: None,
+                                    relationships: None,
+                                })),
+                                errors: None,
+                                links: None,
+                            },
+                        )
                         .await
                         .unwrap_or_else(|_| ResourceIdentifiersDocument::internal_server_error());
 
@@ -67,6 +87,19 @@ fn Content(props: &Props) -> HtmlResult {
         .cloned()
         .unwrap();
 
+    let require_passcode = lobby
+        .try_get_resources()
+        .and_then(Resources::try_get_individual)
+        .and_then(|r| {
+            r.try_get_attribute(
+                |a| a.require_passcode.as_ref(),
+                "require_passcode",
+                "Require Passcode",
+            )
+        })
+        .cloned()
+        .unwrap();
+
     let host = host
         .try_get_resources()
         .and_then(Resources::try_get_individual)
@@ -75,7 +108,7 @@ fn Content(props: &Props) -> HtmlResult {
         .unwrap();
 
     Ok(html! {
-       <LobbyDetails id={id} name={name} host={host} onclick={onclick} />
+       <LobbyDetails id={id} name={name} host={host} require_passcode={require_passcode} onclick={onclick} />
     })
 }
 

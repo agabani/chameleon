@@ -76,12 +76,16 @@ impl Database {
         E: Executor<'c, Database = Postgres>,
     {
         sqlx::query!(
-            r#"INSERT INTO lobby (public_id, name)
-            VALUES ($1, $2)
+            r#"INSERT INTO lobby (public_id, name, passcode, require_passcode)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (public_id) DO UPDATE
-                SET name = $2;"#,
+                SET name = $2,
+                    passcode = $3,
+                    require_passcode = $4;"#,
             lobby.id.0,
             lobby.name,
+            lobby.passcode,
+            lobby.require_passcode,
         )
         .execute(conn)
         .await
@@ -195,7 +199,7 @@ impl Database {
         E: Executor<'c, Database = Postgres>,
     {
         let records = sqlx::query!(
-            r#"SELECT l.id, l.public_id, l.name, u.public_id host_public_id
+            r#"SELECT l.id, l.public_id, l.name, l.passcode, l.require_passcode, u.public_id host_public_id
             FROM lobby l
                      JOIN lobby_member lm ON l.id = lm.lobby_id
                      JOIN "user" u ON u.id = lm.user_id
@@ -219,6 +223,8 @@ impl Database {
                 id: LobbyId(record.public_id),
                 name: record.name,
                 host: UserId(record.host_public_id),
+                passcode: record.passcode,
+                require_passcode: record.require_passcode,
             })
             .collect();
 
@@ -272,7 +278,7 @@ impl Database {
         E: Executor<'c, Database = Postgres>,
     {
         sqlx::query!(
-            r#"SELECT l.public_id, l.name, u.public_id host_public_id
+            r#"SELECT l.public_id, l.name, l.passcode, l.require_passcode, u.public_id host_public_id
             FROM lobby l
                      JOIN lobby_member lm ON l.id = lm.lobby_id
                      JOIN "user" u ON u.id = lm.user_id
@@ -287,6 +293,8 @@ impl Database {
                 id: LobbyId(record.public_id),
                 name: record.name,
                 host: UserId(record.host_public_id),
+                passcode: record.passcode,
+                require_passcode: record.require_passcode
             })
         })
     }
@@ -336,10 +344,14 @@ impl Database {
     {
         sqlx::query!(
             r#"UPDATE lobby
-            SET name = $2
+            SET name = $2,
+                passcode = $3,
+                require_passcode = $4
             WHERE public_id = $1"#,
             lobby.id.0,
             lobby.name,
+            lobby.passcode,
+            lobby.require_passcode,
         )
         .execute(conn)
         .await

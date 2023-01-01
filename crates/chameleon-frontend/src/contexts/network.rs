@@ -69,9 +69,11 @@ impl NetworkState {
     pub async fn action_lobby_join(
         &self,
         id: &str,
+        document: &ResourcesDocument<LobbyAttributes>,
     ) -> Result<ResourceIdentifiersDocument, gloo::net::Error> {
         Request::post(&format!("/api/v1/lobbies/{id}/actions/join"))
             .authentication_headers()
+            .json(document)?
             .send()
             .await?
             .json()

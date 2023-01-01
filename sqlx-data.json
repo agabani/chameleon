@@ -48,6 +48,65 @@
     },
     "query": "INSERT INTO lobby_member (lobby_id, user_id, host)\n            VALUES ((SELECT id FROM lobby WHERE public_id = $1),\n                    (SELECT id FROM \"user\" WHERE public_id = $2),\n                    $3)\n            ON CONFLICT DO NOTHING;"
   },
+  "3f12c87d0a84a722686c53c9eb74d9d611c771c1d5e621e62216cf15ac5a3ac6": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Text",
+          "Bool"
+        ]
+      }
+    },
+    "query": "UPDATE lobby\n            SET name = $2,\n                passcode = $3,\n                require_passcode = $4\n            WHERE public_id = $1"
+  },
+  "4f051548f2566e56a46351fb3a44c79b552338b34692a0057a1a97f589fa7f51": {
+    "describe": {
+      "columns": [
+        {
+          "name": "public_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "passcode",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "require_passcode",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "host_public_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT l.public_id, l.name, l.passcode, l.require_passcode, u.public_id host_public_id\n            FROM lobby l\n                     JOIN lobby_member lm ON l.id = lm.lobby_id\n                     JOIN \"user\" u ON u.id = lm.user_id\n            WHERE l.public_id = $1\n              AND lm.host IS TRUE;"
+  },
   "77480afa3e30f6efab2f1b4dfa7bb4f41d5637260eb417060da03a52cafaaa14": {
     "describe": {
       "columns": [],
@@ -61,18 +120,20 @@
     },
     "query": "DELETE\n            FROM lobby_member\n            WHERE lobby_id = ((SELECT id FROM lobby WHERE public_id = $1))\n                AND user_id = ((SELECT id FROM \"user\" WHERE public_id = $2));"
   },
-  "8e1aa72d21270b68b564bffd2c2d9050876551939405c089c929e271df28a796": {
+  "7c7d1837456b90cfcdeeb1f2d0e42dabb24baa4524279b65ea98edaae23f14cf": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
         "Left": [
           "Uuid",
-          "Text"
+          "Text",
+          "Text",
+          "Bool"
         ]
       }
     },
-    "query": "UPDATE lobby\n            SET name = $2\n            WHERE public_id = $1"
+    "query": "INSERT INTO lobby (public_id, name, passcode, require_passcode)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (public_id) DO UPDATE\n                SET name = $2,\n                    passcode = $3,\n                    require_passcode = $4;"
   },
   "9a253732f9059dcac0630f2c38df67a08bd3cf8c887074ba9a1c95f30c78a528": {
     "describe": {
@@ -134,19 +195,6 @@
     },
     "query": "SELECT lm.id, u.public_id, u.name\n            FROM lobby l\n                     JOIN lobby_member lm on l.id = lm.lobby_id\n                     JOIN \"user\" u on u.id = lm.user_id\n            WHERE l.public_id = $3\n              AND lm.id > $1\n            ORDER BY lm.id\n            LIMIT $2;"
   },
-  "ae6dcd2c11d602c70813eb2cde6df8248e61ca1f62b202c4b24bb27263532dbf": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text"
-        ]
-      }
-    },
-    "query": "INSERT INTO lobby (public_id, name)\n            VALUES ($1, $2)\n            ON CONFLICT (public_id) DO UPDATE\n                SET name = $2;"
-  },
   "b412316687311811df9341aac98a3785d0a6dd8d210d19cba5cbc96c638d0b09": {
     "describe": {
       "columns": [],
@@ -160,39 +208,7 @@
     },
     "query": "UPDATE \"user\"\n            SET name = $2\n            WHERE public_id = $1"
   },
-  "ba93606a72d667ea81e58c32b541e383c7f24aa400fb391907a8c54b7999e96f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "public_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "host_public_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SELECT l.public_id, l.name, u.public_id host_public_id\n            FROM lobby l\n                     JOIN lobby_member lm ON l.id = lm.lobby_id\n                     JOIN \"user\" u ON u.id = lm.user_id\n            WHERE l.public_id = $1\n              AND lm.host IS TRUE;"
-  },
-  "ce0f7b0a8d2749eeefb3456b28181a642fd8aafa64bd3532498da2ef6f1eee8d": {
+  "c636fb09ae77f51749561abdb5bb62639cb5033da36782cc7d3cf36426eebc52": {
     "describe": {
       "columns": [
         {
@@ -211,14 +227,26 @@
           "type_info": "Text"
         },
         {
-          "name": "host_public_id",
+          "name": "passcode",
           "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "require_passcode",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "host_public_id",
+          "ordinal": 5,
           "type_info": "Uuid"
         }
       ],
       "nullable": [
         false,
         false,
+        false,
+        true,
         false,
         false
       ],
@@ -229,7 +257,7 @@
         ]
       }
     },
-    "query": "SELECT l.id, l.public_id, l.name, u.public_id host_public_id\n            FROM lobby l\n                     JOIN lobby_member lm ON l.id = lm.lobby_id\n                     JOIN \"user\" u ON u.id = lm.user_id\n            WHERE l.id > $1\n              AND lm.host IS TRUE\n            ORDER BY l.id\n            LIMIT $2;"
+    "query": "SELECT l.id, l.public_id, l.name, l.passcode, l.require_passcode, u.public_id host_public_id\n            FROM lobby l\n                     JOIN lobby_member lm ON l.id = lm.lobby_id\n                     JOIN \"user\" u ON u.id = lm.user_id\n            WHERE l.id > $1\n              AND lm.host IS TRUE\n            ORDER BY l.id\n            LIMIT $2;"
   },
   "d5e1efd826a6d44a22c1f9d755c7de604cc80ba57a3fbd01dffdc26b2c2a8251": {
     "describe": {
