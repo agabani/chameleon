@@ -1,12 +1,9 @@
 use chameleon_protocol::jsonapi::{Links, Relationships, Resource, ResourceIdentifier};
 
 pub mod api_v1_lobbies;
-pub mod api_v1_message;
 pub mod api_v1_ping;
-pub mod api_v1_telemetry;
 pub mod api_v1_userinfo;
 pub mod api_v1_users;
-pub mod ws_v1;
 pub mod ws_v1_lobbies;
 
 trait ToResource {

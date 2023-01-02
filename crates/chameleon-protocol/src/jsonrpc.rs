@@ -11,6 +11,7 @@ pub struct Error {
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct Frame<T, U> {
+    #[serde(rename = "jsonrpc")]
     pub jsonrpc: String,
 
     #[serde(flatten)]

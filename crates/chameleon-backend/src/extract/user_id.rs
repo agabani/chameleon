@@ -4,10 +4,10 @@ use axum::{extract::FromRequestParts, http::request::Parts};
 use chameleon_protocol::jsonapi::{self, Source};
 
 use crate::{
+    app::AppState,
     database::Database,
     domain::{LocalId, UserId},
     error::ApiError,
-    AppState,
 };
 
 impl FromRequestParts<AppState> for UserId {
@@ -35,7 +35,7 @@ impl FromRequestParts<AppState> for UserId {
                             parameter: None,
                             pointer: None,
                         }),
-                        title: "Invalid Header".to_string().into(),
+                        title: Some("Invalid Header".to_string()),
                         detail: Some("`x-chameleon-local-id` does not have a user".to_string()),
                     }))
                 })

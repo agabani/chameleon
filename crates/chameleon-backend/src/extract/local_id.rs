@@ -24,37 +24,29 @@ impl<S> FromRequestParts<S> for LocalId {
                 .get("x-chameleon-local-id")
                 .and_then(|header| header.to_str().ok())
                 .ok_or_else(|| {
-                    ApiError::JsonApi(
-                        jsonapi::Error {
-                            status: 400,
-                            source: Source {
-                                header: "x-chameleon-local-id".to_string().into(),
-                                parameter: None,
-                                pointer: None,
-                            }
-                            .into(),
-                            title: "Invalid Header".to_string().into(),
-                            detail: "`x-chameleon-local-id` must be present".to_string().into(),
-                        }
-                        .into(),
-                    )
+                    ApiError::JsonApi(Box::new(jsonapi::Error {
+                        status: 400,
+                        source: Some(Source {
+                            header: Some("x-chameleon-local-id".to_string()),
+                            parameter: None,
+                            pointer: None,
+                        }),
+                        title: Some("Invalid Header".to_string()),
+                        detail: Some("`x-chameleon-local-id` must be present".to_string()),
+                    }))
                 })?;
 
             LocalId::from_str(header).map_err(|error| {
-                ApiError::JsonApi(
-                    jsonapi::Error {
-                        status: 400,
-                        source: Source {
-                            header: "x-chameleon-local-id".to_string().into(),
-                            parameter: None,
-                            pointer: None,
-                        }
-                        .into(),
-                        title: "Invalid Header".to_string().into(),
-                        detail: error.to_string().into(),
-                    }
-                    .into(),
-                )
+                ApiError::JsonApi(Box::new(jsonapi::Error {
+                    status: 400,
+                    source: Some(Source {
+                        header: Some("x-chameleon-local-id".to_string()),
+                        parameter: None,
+                        pointer: None,
+                    }),
+                    title: Some("Invalid Header".to_string()),
+                    detail: Some(error.to_string()),
+                }))
             })
         })
     }

@@ -11,10 +11,10 @@ use chameleon_protocol::{
 };
 
 use crate::{
+    app::AppState,
     database::Database,
     domain::{LocalId, User, UserId},
     error::ApiError,
-    AppState,
 };
 
 use super::{ToResource, ToResourceIdentifier, Variation};

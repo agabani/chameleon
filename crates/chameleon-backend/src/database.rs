@@ -1,7 +1,6 @@
 use chameleon_protocol::{
     frames::{LobbyFrame, LobbyRequest},
     jsonapi::{self, Source},
-    ws,
 };
 use sqlx::{postgres::PgListener, Executor, Pool, Postgres};
 
@@ -12,20 +11,6 @@ pub struct Database {}
 impl Database {
     pub async fn listener(conn: &Pool<Postgres>) -> Result<PgListener, sqlx::Error> {
         PgListener::connect_with(conn).await
-    }
-
-    pub async fn notify<'c, E>(
-        conn: E,
-        chan: &str,
-        response: &ws::Response,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(r#"SELECT pg_notify($1, $2)"#, chan, response.to_string())
-            .execute(conn)
-            .await
-            .map(|_| ())
     }
 
     pub async fn notify_lobby<'c, E>(

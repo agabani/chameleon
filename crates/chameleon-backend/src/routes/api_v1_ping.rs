@@ -1,13 +1,21 @@
-use crate::{domain::LocalId, error::ApiError};
+use crate::{app::AppState, domain::LocalId, error::ApiError};
 
 use axum::{
+    http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
+    routing::get,
+    Json, Router,
 };
 use serde_json::json;
 
+pub const PATH: &str = "/api/v1/ping";
+
+pub fn router() -> Router<AppState> {
+    Router::new().route("/", get(handle))
+}
+
 #[allow(clippy::unused_async)] // reason = "required by `axum::Router`"
 #[tracing::instrument]
-pub async fn get(local_id: LocalId) -> Result<Response, ApiError> {
-    Ok(Json(json!({})).into_response())
+async fn handle(local_id: LocalId) -> Result<Response, ApiError> {
+    Ok((StatusCode::OK, Json(json!({}))).into_response())
 }
