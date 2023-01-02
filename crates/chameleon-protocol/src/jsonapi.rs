@@ -418,3 +418,47 @@ impl<T> ResourcesDocument<T> {
         })
     }
 }
+
+/// Convenience method.
+impl<T> ResourcesDocument<T> {
+    /// Try get attribute of individual resource.
+    ///
+    /// Convenience method.
+    pub fn try_get_attribute<A>(
+        &self,
+        accessor: impl Fn(&T) -> Option<&A>,
+        name: &str,
+        display: &str,
+    ) -> Result<&A, Box<Error>> {
+        self.try_get_resources()?
+            .try_get_individual()?
+            .try_get_attribute(accessor, name, display)
+    }
+
+    /// Try get field of individual resource.
+    ///
+    /// Convenience method.
+    pub fn try_get_field<A>(
+        &self,
+        accessor: impl Fn(&Resource<T>) -> Option<&A>,
+        name: &str,
+        display: &str,
+    ) -> Result<&A, Box<Error>> {
+        self.try_get_resources()?
+            .try_get_individual()?
+            .try_get_field(accessor, name, display)
+    }
+
+    /// Try get relationship of individual resource.
+    ///
+    /// Convenience method.
+    pub fn try_get_relationship<A>(
+        &self,
+        name: &str,
+        display: &str,
+    ) -> Result<&Relationship, Box<Error>> {
+        self.try_get_resources()?
+            .try_get_individual()?
+            .try_get_relationship(name, display)
+    }
+}
