@@ -435,6 +435,10 @@ impl<T> ResourcesDocument<T> {
             .try_get_attribute(accessor, name, display)
     }
 
+    pub fn try_get_collection_resources(&self) -> Result<&Vec<Resource<T>>, Box<Error>> {
+        self.try_get_resources()?.try_get_collection()
+    }
+
     /// Try get field of individual resource.
     ///
     /// Convenience method.

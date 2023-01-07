@@ -2,10 +2,7 @@ use yew::prelude::*;
 use yew_router::prelude::*;
 
 use crate::{
-    components::{
-        authentication_switch::AuthenticationSwitch, theme_container::ThemeContainer,
-        theme_picker::ThemePicker,
-    },
+    components::{authentication_switch::AuthenticationSwitch, theme_container::ThemeContainer},
     contexts::{current_user::CurrentUserProvider, network::NetworkProvider, theme::ThemeProvider},
     pages::{
         browse::Browse, host::Host, lobby::Lobby, main_menu::MainMenu, name::Name,
@@ -21,7 +18,6 @@ pub fn App() -> Html {
         <CurrentUserProvider>
         <BrowserRouter>
             <ThemeContainer>
-                <ThemePicker />
                 <Switch<Route> render={|route| match route {
                     Route::MainMenu => html! {
                         <AuthenticationSwitch

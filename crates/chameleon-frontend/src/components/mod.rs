@@ -1,10 +1,15 @@
 pub mod authentication_switch;
+pub mod infinite_scrolling;
 pub mod lobby_chat_input;
 pub mod lobby_chat_list;
 pub mod lobby_chat_list_item;
 pub mod lobby_creation_form;
+pub mod lobby_details;
 pub mod lobby_invite_form;
+pub mod lobby_list;
+pub mod lobby_list_item;
 pub mod lobby_member_list;
 pub mod lobby_member_list_item;
+pub mod navigation;
 pub mod theme_container;
 pub mod theme_picker;

@@ -1,0 +1,17 @@
+.lobby-list {
+  // grid
+  display: grid;
+  grid-template-columns: 1fr 8em 8em;
+
+  gap: 1em 0;
+
+  @if $debug {
+    border: 1px solid darkcyan;
+    box-sizing: border-box;
+
+    & > * {
+      border: 1px solid darkgreen;
+      box-sizing: border-box;
+    }
+  }
+}

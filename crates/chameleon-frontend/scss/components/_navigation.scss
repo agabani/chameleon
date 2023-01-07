@@ -1,0 +1,46 @@
+.navigation {
+  // container
+  height: 100%;
+
+  // flex
+  display: flex;
+
+  &--link {
+    // container
+    height: 100%;
+
+    // flex
+    display: flex;
+    align-items: center;
+
+    // styling
+    padding-left: 2em;
+    padding-right: 2em;
+
+    text-decoration: none;
+    text-transform: uppercase;
+  }
+
+  &--spacer {
+    flex-grow: 1;
+  }
+
+  &--theme-picker {
+    // container
+    height: 100%;
+
+    // flex
+    display: flex;
+    align-items: center;
+  }
+
+  @if $debug {
+    border: 1px solid darkcyan;
+    box-sizing: border-box;
+
+    & > * {
+      border: 1px solid darkgreen;
+      box-sizing: border-box;
+    }
+  }
+}
