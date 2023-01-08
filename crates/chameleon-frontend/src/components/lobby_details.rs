@@ -1,69 +1,58 @@
+use web_sys::HtmlInputElement;
 use yew::prelude::*;
-
-use crate::hooks::input::use_input;
-
-#[derive(PartialEq, Properties)]
-pub struct Props {
-    pub id: AttrValue,
-    pub name: AttrValue,
-    pub host: AttrValue,
-    pub require_passcode: bool,
-    pub onclick: Callback<LobbyDetailsJoinEvent>,
-}
 
 #[function_component]
 pub fn LobbyDetails(props: &Props) -> Html {
-    let passcode = use_input(String::new().into());
+    let node_ref = use_node_ref();
 
-    let onsubmit = use_callback(
-        move |event: SubmitEvent, (callback, require_passcode, passcode)| {
-            event.prevent_default();
-
-            callback.emit(LobbyDetailsJoinEvent {
-                passcode: if *require_passcode {
-                    Some(passcode.to_string().into())
-                } else {
-                    None
-                },
-            });
-        },
-        (
-            props.onclick.clone(),
-            props.require_passcode,
-            passcode.state.clone(),
-        ),
-    );
+    let onsubmit = {
+        use_callback(
+            |event, (callback, node_ref)| handle_onsubmit(&event, callback, node_ref),
+            (props.onsubmit.clone(), node_ref.clone()),
+        )
+    };
 
     html! {
         <div class="lobby-details">
-            <div>{ &props.id }</div>
-            <div>{ &props.name }</div>
-            <div>{ &props.host }</div>
-            <form onsubmit={onsubmit}>
-                {
-                    if props.require_passcode {
-                        html! {
-                            <div>
-                                <label>{ "passcode: " }</label>
-                                <input
-                                    onchange={passcode.callback}
-                                    ref={passcode.node_ref}
-                                    type="password"
-                                    value={passcode.state.to_string()} />
-                            </div>
-                        }
-                    } else {
-                        html! {}
-                    }
+            <div class="lobby-details--name">{ &props.name }</div>
+            <div class="lobby-details--host-name">{ "host name: " }{ &props.host_name }</div>
+            <form {onsubmit}>
+                if props.require_passcode {
+                    <div class="lobby-details--passcode">
+                        <label>{ "passcode: " }</label>
+                        <input ref={node_ref} type="password" />
+                    </div>
                 }
-                <div>
-                    <button type="submit">{ "join" }</button>
-                </div>
+                <button type="submit">{ "join" }</button>
             </form>
         </div>
     }
 }
 
-pub struct LobbyDetailsJoinEvent {
+#[derive(PartialEq, Properties)]
+pub struct Props {
+    pub id: AttrValue,
+
+    pub host_name: AttrValue,
+
+    pub name: AttrValue,
+
+    pub require_passcode: bool,
+
+    #[prop_or_default]
+    pub onsubmit: Callback<OnsubmitEvent>,
+}
+
+fn handle_onsubmit(event: &SubmitEvent, callback: &Callback<OnsubmitEvent>, node_ref: &NodeRef) {
+    event.prevent_default();
+
+    let passcode = node_ref
+        .cast::<HtmlInputElement>()
+        .map(|element| element.value().into());
+
+    callback.emit(OnsubmitEvent { passcode });
+}
+
+pub struct OnsubmitEvent {
     pub passcode: Option<AttrValue>,
 }

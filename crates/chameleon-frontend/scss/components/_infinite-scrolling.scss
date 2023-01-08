@@ -1,0 +1,13 @@
+.infinite-scrolling {
+  overflow-y: scroll;
+
+  @if $debug {
+    border: 1px solid darkcyan;
+    box-sizing: border-box;
+
+    & > * {
+      border: 1px solid darkgreen;
+      box-sizing: border-box;
+    }
+  }
+}

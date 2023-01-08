@@ -1,11 +1,5 @@
 use yew::prelude::*;
 
-#[derive(PartialEq, Properties)]
-pub struct Props {
-    #[prop_or_default]
-    pub children: Children,
-}
-
 #[function_component]
 pub fn LobbyList(props: &Props) -> Html {
     html! {
@@ -13,4 +7,10 @@ pub fn LobbyList(props: &Props) -> Html {
             { props.children.clone() }
         </div>
     }
+}
+
+#[derive(PartialEq, Properties)]
+pub struct Props {
+    #[prop_or_default]
+    pub children: Children,
 }
