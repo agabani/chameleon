@@ -8,11 +8,13 @@
 
 @import "components/infinite-scrolling";
 @import "components/lobby-details";
+@import "components/lobby-host-form";
 @import "components/lobby-list-item";
 @import "components/lobby-list";
 @import "components/navigation";
 
 @import "pages/browse";
+@import "pages/host";
 
 @import "themes/dark";
 @import "themes/light";

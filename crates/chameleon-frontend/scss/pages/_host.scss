@@ -1,0 +1,35 @@
+.host {
+  // variables
+  $height: 100vh;
+  $header-height: 3em;
+
+  // container
+  height: $height;
+
+  // grid
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: $header-height 1fr;
+
+  grid-template-areas:
+    "header"
+    "content";
+
+  &--grid-item-header {
+    grid-area: header;
+  }
+
+  &--grid-item-content {
+    grid-area: content;
+  }
+
+  @if $debug {
+    border: 1px solid darkcyan;
+    box-sizing: border-box;
+
+    & > * {
+      border: 1px solid darkgreen;
+      box-sizing: border-box;
+    }
+  }
+}
