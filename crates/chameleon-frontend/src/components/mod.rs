@@ -3,7 +3,6 @@ pub mod infinite_scrolling;
 pub mod lobby_chat_input;
 pub mod lobby_chat_list;
 pub mod lobby_chat_list_item;
-pub mod lobby_creation_form;
 pub mod lobby_details;
 pub mod lobby_invite_form;
 pub mod lobby_list;
