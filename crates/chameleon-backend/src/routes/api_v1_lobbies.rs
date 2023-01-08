@@ -68,15 +68,47 @@ async fn create_one(
         Resources::Collection(_) => Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
         Resources::Individual(resource) => {
             let _type = resource.try_get_field(|r| r.type_.as_ref(), "type", "Type")?;
+
             let name = resource.try_get_attribute(|a| a.name.as_ref(), "name", "Name")?;
-            let passcode = resource
-                .try_get_attribute(|a| a.passcode.as_ref(), "passcode", "Passcode")
-                .ok();
+            if name.is_empty() {
+                return Err(ApiError::JsonApi(Box::new(jsonapi::Error {
+                    status: 422,
+                    source: Some(jsonapi::Source {
+                        header: None,
+                        parameter: None,
+                        pointer: Some("/data/attributes/name".to_string()),
+                    }),
+                    title: Some("Invalid Attribute".to_string()),
+                    detail: Some("Name must not be empty".to_string()),
+                })));
+            }
+
             let require_passcode = resource.try_get_attribute(
                 |a| a.require_passcode.as_ref(),
                 "require_passcode",
                 "Require Passcode",
             )?;
+
+            let passcode = if *require_passcode {
+                let passcode =
+                    resource.try_get_attribute(|a| a.passcode.as_ref(), "passcode", "Passcode")?;
+                if passcode.is_empty() {
+                    return Err(ApiError::JsonApi(Box::new(jsonapi::Error {
+                        status: 422,
+                        source: Some(jsonapi::Source {
+                            header: None,
+                            parameter: None,
+                            pointer: Some("/data/attributes/passcode".to_string()),
+                        }),
+                        title: Some("Invalid Attribute".to_string()),
+                        detail: Some("Passcode must not be empty".to_string()),
+                    })));
+                }
+
+                Some(passcode)
+            } else {
+                None
+            };
 
             let lobby = Lobby {
                 id: LobbyId::random(),

@@ -1,0 +1,22 @@
+.lobby-host-form {
+  &--input-group {
+    margin-bottom: 1em;
+  }
+
+  &--label {
+    display: inline-block;
+
+    min-width: 12em;
+  }
+
+  @if $debug {
+    border: 1px solid darkcyan;
+    box-sizing: border-box;
+
+    & > *,
+    & > * > * {
+      border: 1px solid darkgreen;
+      box-sizing: border-box;
+    }
+  }
+}
