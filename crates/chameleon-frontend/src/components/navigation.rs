@@ -9,7 +9,7 @@ pub fn Navigation() -> Html {
         <div class="navigation">
             <div class="navigation--item">
                 <Link<Route> classes="navigation--link" to={Route::MainMenu}>
-                    { "main menu" }
+                    { "chameleon" }
                 </Link<Route>>
             </div>
             <div class="navigation--item">
