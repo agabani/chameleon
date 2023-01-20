@@ -19,6 +19,10 @@ pub struct Props {
 pub fn CurrentUserProvider(props: &Props) -> Html {
     let context = use_reducer(CurrentUserState::default);
 
+    // let context = use_reducer(|| CurrentUserState {
+    //     authenticated: true,
+    // });
+
     html! {
         <ContextProvider<CurrentUserContext> context={context}>
             { props.children.clone() }

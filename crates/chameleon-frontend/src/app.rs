@@ -5,8 +5,8 @@ use crate::{
     components::{authentication_switch::AuthenticationSwitch, theme_container::ThemeContainer},
     contexts::{current_user::CurrentUserProvider, network::NetworkProvider, theme::ThemeProvider},
     pages::{
-        browse::Browse, host::Host, lobby::Lobby, main_menu::MainMenu, name::Name,
-        name_invite::NameInvite,
+        browse::Browse, host::Host, lobby::Lobby, main_menu::MainMenu, name_invite::NameInvite,
+        user::User,
     },
 };
 
@@ -21,13 +21,13 @@ pub fn App() -> Html {
                 <Switch<Route> render={|route| match route {
                     Route::MainMenu => html! {
                         <AuthenticationSwitch
-                            challenge={|_| html!{ <Name /> }}
+                            challenge={|_| html!{ <User /> }}
                             render={|_| html!{ <MainMenu /> }}
                         />
                     },
                     Route::Browse =>  html !{
                         <AuthenticationSwitch
-                            challenge={|_| html!{ <Name /> }}
+                            challenge={|_| html!{ <User /> }}
                             render={|_| html!{ <Browse /> }}
                         />
                     },
@@ -47,7 +47,7 @@ pub fn App() -> Html {
                     },
                     Route::Host =>  html !{
                         <AuthenticationSwitch
-                            challenge={|_| html!{ <Name /> }}
+                            challenge={|_| html!{ <User /> }}
                             render={|_| html!{ <Host /> }}
                         />
                     },

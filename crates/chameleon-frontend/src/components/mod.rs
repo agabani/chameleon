@@ -13,3 +13,4 @@ pub mod lobby_member_list_item;
 pub mod navigation;
 pub mod theme_container;
 pub mod theme_picker;
+pub mod user_form;
