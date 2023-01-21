@@ -6,7 +6,7 @@ use chameleon_protocol::jsonapi::{self, Source};
 use crate::{
     app::AppState,
     database::Database,
-    domain_old::{LocalId, UserId},
+    domain::{LocalId, UserId},
     error::ApiError,
 };
 

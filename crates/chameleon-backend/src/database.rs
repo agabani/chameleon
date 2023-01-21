@@ -4,7 +4,10 @@ use chameleon_protocol::{
 };
 use sqlx::{postgres::PgListener, Executor, Pool, Postgres};
 
-use crate::domain_old::{Lobby, LobbyId, LocalId, User, UserId};
+use crate::{
+    domain::{LobbyId, LocalId, UserId},
+    domain_old::{Lobby, User},
+};
 
 pub struct Database {}
 
@@ -316,7 +319,7 @@ impl Database {
             FROM "user" u
                      JOIN local l ON u.id = l.user_id
             WHERE l.public_id = $1;"#,
-            local_id.value(),
+            local_id.0,
         )
         .map(|record| UserId(record.public_id))
         .fetch_optional(conn)

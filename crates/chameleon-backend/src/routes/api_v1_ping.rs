@@ -1,4 +1,4 @@
-use crate::{app::AppState, domain_old::LocalId, error::ApiError};
+use crate::{app::AppState, domain::LocalId, error::ApiError};
 
 use axum::{
     http::StatusCode,

@@ -3,6 +3,7 @@
 mod app;
 mod args;
 mod database;
+mod domain;
 mod domain_old;
 mod error;
 mod extract;

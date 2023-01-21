@@ -6,7 +6,7 @@ use axum::{
 };
 use chameleon_protocol::openid_connect::{self, UserInfo};
 
-use crate::{app::AppState, domain_old::UserId, error::ApiError};
+use crate::{app::AppState, domain::UserId, error::ApiError};
 
 pub const PATH: &str = "/api/v1/userinfo";
 

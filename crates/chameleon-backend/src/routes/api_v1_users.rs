@@ -13,7 +13,8 @@ use chameleon_protocol::{
 use crate::{
     app::AppState,
     database::Database,
-    domain_old::{LocalId, User, UserId},
+    domain::{LocalId, UserId},
+    domain_old::User,
     error::ApiError,
 };
 
