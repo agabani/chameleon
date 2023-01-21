@@ -4,7 +4,7 @@ use chameleon_protocol::{
 };
 use sqlx::{postgres::PgListener, Executor, Pool, Postgres};
 
-use crate::domain::{Lobby, LobbyId, LocalId, User, UserId};
+use crate::domain_old::{Lobby, LobbyId, LocalId, User, UserId};
 
 pub struct Database {}
 

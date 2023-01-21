@@ -4,7 +4,7 @@ use std::str::FromStr;
 use axum::{extract::FromRequestParts, http::request::Parts};
 use chameleon_protocol::jsonapi::{self, Source};
 
-use crate::{domain::LocalId, error::ApiError};
+use crate::{domain_old::LocalId, error::ApiError};
 
 impl<S> FromRequestParts<S> for LocalId {
     type Rejection = ApiError;

@@ -23,7 +23,7 @@ use tracing::Instrument;
 use crate::{
     app::AppState,
     database::Database,
-    domain::{LobbyId, LocalId, UserId},
+    domain_old::{LobbyId, LocalId, UserId},
     error::ApiError,
 };
 
