@@ -5,8 +5,8 @@ use crate::{
     components::{authentication_switch::AuthenticationSwitch, theme_container::ThemeContainer},
     contexts::{current_user::CurrentUserProvider, network::NetworkProvider, theme::ThemeProvider},
     pages::{
-        browse::Browse, host::Host, lobby::Lobby, main_menu::MainMenu, name_invite::NameInvite,
-        user::User,
+        browse::Browse, host::Host, lobby::Lobby, main_menu::MainMenu, user::User,
+        user_invite::UserInvite,
     },
 };
 
@@ -37,7 +37,7 @@ pub fn App() -> Html {
                         html! {
                            <AuthenticationSwitch
                                 challenge={move |_| {
-                                    html!{ <NameInvite id={id1.clone()} /> }
+                                    html!{ <UserInvite id={id1.clone()} /> }
                                 }}
                                 render={move |_| {
                                     html!{ <Lobby id={id2.clone()} /> }
