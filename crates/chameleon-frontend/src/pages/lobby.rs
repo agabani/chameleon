@@ -48,7 +48,7 @@ pub fn Lobby(props: &Props) -> Html {
         )
     };
 
-    load_data(&network, &state, &props.id);
+    load_data(&network, &state, props);
     web_socket(network, state.clone(), props);
 
     html! {
@@ -243,7 +243,7 @@ fn action_leave(network: &UseReducerHandle<NetworkState>, navigator: &Navigator,
 fn load_data(
     network: &UseReducerHandle<NetworkState>,
     state: &UseReducerHandle<State>,
-    id: &AttrValue,
+    props: &Props,
 ) {
     if state.status != Status::Requested {
         return;
@@ -251,7 +251,7 @@ fn load_data(
 
     state.dispatch(Action::Status(Status::Processing));
 
-    let id = id.clone();
+    let id = props.id.clone();
     let network = network.clone();
     let state = state.clone();
     spawn_local(async move {
@@ -356,6 +356,9 @@ fn web_socket(
 
     state.dispatch(Action::Connected(sender.clone()));
 
+    let props = Props {
+        id: props.id.clone(),
+    };
     spawn_local(async move {
         let frame = frames::LobbyFrame::new_request(
             None,
@@ -396,6 +399,7 @@ fn web_socket(
                         frames::LobbyResponse::Authenticate(authenticated) => {
                             if authenticated {
                                 state.dispatch(Action::Authenticated);
+                                load_data(&network, &state, &props);
                             }
                         }
                     },
