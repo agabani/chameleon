@@ -3,28 +3,50 @@ use super::{LobbyId, UserId};
 pub struct Lobby {
     pub id: LobbyId,
     pub name: String,
-    pub host: UserId,
-    pub members: Vec<UserId>,
+    pub members: Vec<LobbyMember>,
     pub passcode: Option<String>,
     pub require_passcode: bool,
 }
 
+pub struct LobbyMember {
+    pub host: bool,
+    pub user_id: UserId,
+}
+
 impl Lobby {
-    /// Send chat message.
-    pub fn send_chat_message(
-        &mut self,
-        user_id: UserId,
-        message: String,
-    ) -> Result<Vec<Events>, SendChatMessageError> {
+    pub fn create(
+        name: String,
+        host: UserId,
+        passcode: Option<String>,
+        require_passcode: bool,
+    ) -> Result<(Self, Vec<Events>), CreateError> {
         let mut events = Vec::new();
 
-        if !self.members.contains(&user_id) {
-            return Err(SendChatMessageError::NotMember);
+        if require_passcode && passcode.is_none() {
+            return Err(CreateError::MissingPasscode);
         }
 
-        events.push(Events::ChatMessage(ChatMessageEvent { user_id, message }));
+        let this = Self {
+            id: LobbyId::random(),
+            name: name.clone(),
+            members: vec![LobbyMember {
+                host: true,
+                user_id: host,
+            }],
+            passcode: passcode.clone(),
+            require_passcode,
+        };
 
-        Ok(events)
+        events.push(Events::Created(CreatedEvent {
+            id: this.id,
+            name,
+            passcode,
+            require_passcode,
+        }));
+        events.push(Events::Joined(host));
+        events.push(Events::HostGranted(host));
+
+        Ok((this, events))
     }
 
     /// Join.
@@ -39,11 +61,19 @@ impl Lobby {
             return Err(JoinError::IncorrectPasscode);
         }
 
-        if self.members.contains(&user_id) {
+        if self
+            .members
+            .iter()
+            .find(|member| member.user_id == user_id)
+            .is_some()
+        {
             return Err(JoinError::AlreadyJoined);
         }
 
-        self.members.push(user_id);
+        self.members.push(LobbyMember {
+            user_id,
+            host: false,
+        });
         events.push(Events::Joined(user_id));
 
         Ok(events)
@@ -57,11 +87,11 @@ impl Lobby {
             .members
             .iter()
             .enumerate()
-            .find(|member| *member.1 == user_id) else {
+            .find(|member| member.1.user_id == user_id) else {
                 return Err(LeaveError::NotMember)
             };
 
-        self.members.remove(index);
+        let member = self.members.remove(index);
         events.push(Events::Left(user_id));
 
         if self.members.is_empty() {
@@ -69,10 +99,33 @@ impl Lobby {
             return Ok(events);
         }
 
-        if self.host == user_id {
-            self.host = *self.members.first().unwrap();
-            events.push(Events::HostGranted(self.host));
+        if member.host {
+            let member = self.members.first_mut().unwrap();
+            member.host = true;
+            events.push(Events::HostGranted(member.user_id));
         }
+
+        Ok(events)
+    }
+
+    /// Send chat message.
+    pub fn send_chat_message(
+        &mut self,
+        user_id: UserId,
+        message: String,
+    ) -> Result<Vec<Events>, SendChatMessageError> {
+        let mut events = Vec::new();
+
+        if !self
+            .members
+            .iter()
+            .find(|member| member.user_id == user_id)
+            .is_none()
+        {
+            return Err(SendChatMessageError::NotMember);
+        }
+
+        events.push(Events::ChatMessage(ChatMessageEvent { user_id, message }));
 
         Ok(events)
     }
@@ -80,6 +133,7 @@ impl Lobby {
 
 pub enum Events {
     ChatMessage(ChatMessageEvent),
+    Created(CreatedEvent),
     Empty,
     HostGranted(UserId),
     HostRevoked(UserId),
@@ -92,8 +146,15 @@ pub struct ChatMessageEvent {
     pub message: String,
 }
 
-pub enum SendChatMessageError {
-    NotMember,
+pub struct CreatedEvent {
+    pub id: LobbyId,
+    pub name: String,
+    pub passcode: Option<String>,
+    pub require_passcode: bool,
+}
+
+pub enum CreateError {
+    MissingPasscode,
 }
 
 pub enum JoinError {
@@ -102,5 +163,9 @@ pub enum JoinError {
 }
 
 pub enum LeaveError {
+    NotMember,
+}
+
+pub enum SendChatMessageError {
     NotMember,
 }

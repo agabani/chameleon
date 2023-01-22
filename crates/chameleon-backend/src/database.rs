@@ -6,7 +6,7 @@ use sqlx::{postgres::PgListener, Executor, Pool, Postgres};
 
 use crate::{
     domain::{lobby, LobbyId, LocalId, UserId},
-    domain_old::{Lobby, User},
+    domain_old::{LobbyOld, User},
 };
 
 pub struct Database {}
@@ -14,45 +14,6 @@ pub struct Database {}
 impl Database {
     pub async fn listener(conn: &Pool<Postgres>) -> Result<PgListener, sqlx::Error> {
         PgListener::connect_with(conn).await
-    }
-
-    pub async fn insert_lobby<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"INSERT INTO lobby (public_id, name, passcode, require_passcode)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (public_id) DO UPDATE
-                SET name = $2,
-                    passcode = $3,
-                    require_passcode = $4;"#,
-            lobby.id.0,
-            lobby.name,
-            lobby.passcode,
-            lobby.require_passcode,
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
-    }
-
-    pub async fn insert_lobby_host<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"INSERT INTO lobby_member (lobby_id, user_id, host)
-            VALUES ((SELECT id FROM lobby WHERE public_id = $1),
-                    (SELECT id FROM "user" WHERE public_id = $2),
-                    $3);"#,
-            lobby.id.0,
-            lobby.host.0,
-            true
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
     }
 
     pub async fn insert_local<'c, E>(
@@ -116,7 +77,7 @@ impl Database {
     pub async fn query_lobby<'c, E>(
         conn: E,
         keyset_pagination: KeysetPagination,
-    ) -> Result<(Vec<Lobby>, i64), sqlx::Error>
+    ) -> Result<(Vec<LobbyOld>, i64), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
@@ -141,7 +102,7 @@ impl Database {
 
         let lobbies = records
             .into_iter()
-            .map(|record| Lobby {
+            .map(|record| LobbyOld {
                 id: LobbyId(record.public_id),
                 name: record.name,
                 host: UserId(record.host_public_id),
@@ -195,7 +156,7 @@ impl Database {
     pub async fn select_lobby<'c, E>(
         conn: E,
         lobby_id: LobbyId,
-    ) -> Result<Option<Lobby>, sqlx::Error>
+    ) -> Result<Option<LobbyOld>, sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
@@ -211,7 +172,7 @@ impl Database {
         .fetch_optional(conn)
         .await
         .map(|record| {
-            record.map(|record| Lobby {
+            record.map(|record| LobbyOld {
                 id: LobbyId(record.public_id),
                 name: record.name,
                 host: UserId(record.host_public_id),
@@ -260,7 +221,7 @@ impl Database {
         .await
     }
 
-    pub async fn update_lobby<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
+    pub async fn update_lobby<'c, E>(conn: E, lobby: &LobbyOld) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
@@ -318,7 +279,7 @@ impl Database {
         };
 
         let members = sqlx::query!(
-            r#"SELECT u.public_id
+            r#"SELECT u.public_id, lm.host
             FROM lobby_member lm
                      JOIN "user" u on lm.user_id = u.id
                      JOIN lobby l on lm.lobby_id = l.id
@@ -332,10 +293,12 @@ impl Database {
         Ok(Some(lobby::Lobby {
             id: LobbyId(lobby.public_id),
             name: lobby.name,
-            host: UserId(lobby.host_public_id),
             members: members
                 .into_iter()
-                .map(|member| UserId(member.public_id))
+                .map(|member| lobby::LobbyMember {
+                    host: member.host,
+                    user_id: UserId(member.public_id),
+                })
                 .collect(),
             passcode: lobby.passcode,
             require_passcode: lobby.require_passcode,
@@ -361,6 +324,16 @@ impl Database {
                         }),
                     )
                     .await?
+                }
+                lobby::Events::Created(event) => {
+                    Self::insert_lobby(
+                        &mut transaction,
+                        event.id,
+                        &event.name,
+                        &event.passcode,
+                        event.require_passcode,
+                    )
+                    .await?;
                 }
                 lobby::Events::Empty => {
                     Self::delete_lobby(&mut transaction, lobby_id).await?;
@@ -435,6 +408,33 @@ impl Database {
         .execute(executor)
         .await
         .map(|result| result.rows_affected() > 0)
+    }
+
+    async fn insert_lobby<'c, E>(
+        executor: E,
+        id: LobbyId,
+        name: &str,
+        passcode: &Option<String>,
+        require_passcode: bool,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"INSERT INTO lobby (public_id, name, passcode, require_passcode)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (public_id) DO UPDATE
+                SET name = $2,
+                    passcode = $3,
+                    require_passcode = $4;"#,
+            id.0,
+            name,
+            passcode.clone(),
+            require_passcode,
+        )
+        .execute(executor)
+        .await
+        .map(|_| ())
     }
 
     async fn insert_lobby_member<'c, E>(

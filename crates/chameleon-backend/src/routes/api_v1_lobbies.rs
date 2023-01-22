@@ -18,7 +18,7 @@ use crate::{
     app::AppState,
     database::Database,
     domain::{lobby, LobbyId, LocalId, UserId},
-    domain_old::Lobby,
+    domain_old::LobbyOld,
     error::ApiError,
 };
 
@@ -70,8 +70,6 @@ async fn create_one(
     match resources {
         Resources::Collection(_) => Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
         Resources::Individual(resource) => {
-            let _type = resource.try_get_field(|r| r.type_.as_ref(), "type", "Type")?;
-
             let name = resource.try_get_attribute(|a| a.name.as_ref(), "name", "Name")?;
             if name.is_empty() {
                 return Err(ApiError::JsonApi(Box::new(jsonapi::Error {
@@ -87,44 +85,35 @@ async fn create_one(
             }
 
             let require_passcode = resource.try_get_attribute(
-                |a| a.require_passcode.as_ref(),
+                |attributes| attributes.require_passcode.as_ref(),
                 "require_passcode",
                 "Require Passcode",
             )?;
 
-            let passcode = if *require_passcode {
-                let passcode =
-                    resource.try_get_attribute(|a| a.passcode.as_ref(), "passcode", "Passcode")?;
-                if passcode.is_empty() {
-                    return Err(ApiError::JsonApi(Box::new(jsonapi::Error {
-                        status: 422,
-                        source: Some(jsonapi::Source {
-                            header: None,
-                            parameter: None,
-                            pointer: Some("/data/attributes/passcode".to_string()),
-                        }),
-                        title: Some("Invalid Attribute".to_string()),
-                        detail: Some("Passcode must not be empty".to_string()),
-                    })));
+            let passcode = resource
+                .try_get_attribute(
+                    |attributes| attributes.passcode.as_ref(),
+                    "passcode",
+                    "Passcode",
+                )
+                .cloned();
+
+            let lobby = match lobby::Lobby::create(
+                name.clone(),
+                user_id,
+                passcode.clone().ok(),
+                *require_passcode,
+            ) {
+                Ok((lobby, events)) => {
+                    Database::save_lobby(&app_state.postgres_pool, lobby.id, &events).await?;
+                    lobby
                 }
-
-                Some(passcode)
-            } else {
-                None
+                Err(error) => match error {
+                    lobby::CreateError::MissingPasscode => {
+                        return Err(ApiError::JsonApi(passcode.unwrap_err()));
+                    }
+                },
             };
-
-            let lobby = Lobby {
-                id: LobbyId::random(),
-                name: name.clone(),
-                host: user_id,
-                passcode: passcode.cloned(),
-                require_passcode: *require_passcode,
-            };
-
-            let mut conn = app_state.postgres_pool.begin().await?;
-            Database::insert_lobby(&mut conn, &lobby).await?;
-            Database::insert_lobby_host(&mut conn, &lobby).await?;
-            conn.commit().await?;
 
             let document = ResourcesDocument {
                 data: Resources::Individual(lobby.to_resource(Variation::Root)).into(),
@@ -500,9 +489,9 @@ async fn actions_leave(
     Ok((StatusCode::OK, Json(document)).into_response())
 }
 
-impl Lobby {
-    pub fn update_attributes(&self, attributes: &LobbyAttributes) -> Lobby {
-        Lobby {
+impl LobbyOld {
+    pub fn update_attributes(&self, attributes: &LobbyAttributes) -> LobbyOld {
+        LobbyOld {
             id: self.id,
             name: attributes.name.as_ref().unwrap_or(&self.name).clone(),
             host: self.host,
@@ -519,7 +508,7 @@ impl Lobby {
     }
 }
 
-impl ToResource for Lobby {
+impl ToResource for LobbyOld {
     const PATH: &'static str = PATH;
 
     const TYPE: &'static str = TYPE;
@@ -545,6 +534,58 @@ impl ToResource for Lobby {
                 Relationship {
                     data: Some(ResourceIdentifiers::Individual(
                         self.host.to_resource_identifier(),
+                    )),
+                    links: Some(Links(
+                        [
+                            (
+                                "self".to_string(),
+                                format!("{}/{}/relationships/host", Self::PATH, self.id.0),
+                            ),
+                            (
+                                "related".to_string(),
+                                format!("{}/{}/host", Self::PATH, self.id.0),
+                            ),
+                        ]
+                        .into(),
+                    )),
+                },
+            )]
+            .into(),
+        ))
+    }
+}
+
+impl ToResource for lobby::Lobby {
+    const PATH: &'static str = PATH;
+
+    const TYPE: &'static str = TYPE;
+
+    type Attributes = LobbyAttributes;
+
+    fn __attributes(&self) -> Option<Self::Attributes> {
+        Some(Self::Attributes {
+            name: Some(self.name.to_string()),
+            passcode: None,
+            require_passcode: Some(self.require_passcode),
+        })
+    }
+
+    fn __id(&self) -> String {
+        self.id.0.to_string()
+    }
+
+    fn __relationships(&self) -> Option<Relationships> {
+        Some(Relationships(
+            [(
+                "host".to_string(),
+                Relationship {
+                    data: Some(ResourceIdentifiers::Individual(
+                        self.members
+                            .iter()
+                            .find(|member| member.host)
+                            .unwrap()
+                            .user_id
+                            .to_resource_identifier(),
                     )),
                     links: Some(Links(
                         [

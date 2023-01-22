@@ -63,6 +63,32 @@
     },
     "query": "UPDATE lobby\n            SET name = $2,\n                passcode = $3,\n                require_passcode = $4\n            WHERE public_id = $1"
   },
+  "40c79b31941f004d6697fc57e5cc0b6fba1ed37a8636b15857f75ffd89e387a1": {
+    "describe": {
+      "columns": [
+        {
+          "name": "public_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "host",
+          "ordinal": 1,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT u.public_id, lm.host\n            FROM lobby_member lm\n                     JOIN \"user\" u on lm.user_id = u.id\n                     JOIN lobby l on lm.lobby_id = l.id\n            WHERE l.public_id = $1;\n            "
+  },
   "4f051548f2566e56a46351fb3a44c79b552338b34692a0057a1a97f589fa7f51": {
     "describe": {
       "columns": [
@@ -220,26 +246,6 @@
     },
     "query": "UPDATE \"user\"\n            SET name = $2\n            WHERE public_id = $1"
   },
-  "b62350f23d4883339db3d2c9b25f60e10e9a7ce8d5a750c6bd4443616b0dbd13": {
-    "describe": {
-      "columns": [
-        {
-          "name": "public_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SELECT u.public_id\n            FROM lobby_member lm\n                     JOIN \"user\" u on lm.user_id = u.id\n                     JOIN lobby l on lm.lobby_id = l.id\n            WHERE l.public_id = $1;\n            "
-  },
   "bed92113e65aea5249089e0237d71ad752a73110e9baf9f4160b862307093556": {
     "describe": {
       "columns": [],
@@ -358,19 +364,5 @@
       }
     },
     "query": "SELECT pg_notify($1, $2)"
-  },
-  "fcca5343de2750cff69730355994397f7d9d235a88594a70c12946145ed393ae": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid",
-          "Bool"
-        ]
-      }
-    },
-    "query": "INSERT INTO lobby_member (lobby_id, user_id, host)\n            VALUES ((SELECT id FROM lobby WHERE public_id = $1),\n                    (SELECT id FROM \"user\" WHERE public_id = $2),\n                    $3);"
   }
 }
