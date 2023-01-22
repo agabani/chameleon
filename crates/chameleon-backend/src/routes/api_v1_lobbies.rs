@@ -203,17 +203,44 @@ async fn update_one(
     Path(lobby_id): Path<LobbyId>,
     Json(document): Json<ResourcesDocument<LobbyAttributes>>,
 ) -> Result<Response, ApiError> {
-    let mut lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+    let mut lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
 
     match document.try_get_resources()? {
         Resources::Collection(_) => Ok(StatusCode::NOT_IMPLEMENTED.into_response()),
         Resources::Individual(resource) => {
-            if let Some(attributes) = &resource.attributes {
-                lobby = lobby.update_attributes(attributes);
-                Database::update_lobby(&app_state.postgres_pool, &lobby).await?;
-            };
+            let name =
+                resource.try_get_attribute(|accessor| accessor.name.as_ref(), "name", "Name");
+            let passcode = resource.try_get_attribute(
+                |accessor| accessor.passcode.as_ref(),
+                "passcode",
+                "Passcode",
+            );
+            let require_passcode = resource.try_get_attribute(
+                |accessor| accessor.require_passcode.as_ref(),
+                "require_passcode",
+                "Require Passcode",
+            );
+
+            match lobby.update(
+                user_id,
+                &name.cloned().ok(),
+                &passcode.clone().cloned().ok(),
+                require_passcode.cloned().ok(),
+            ) {
+                Ok(events) => {
+                    Database::save_lobby(&app_state.postgres_pool, lobby_id, &events).await?;
+                }
+                Err(error) => match error {
+                    lobby::UpdateError::MissingPasscode => {
+                        passcode?;
+                    }
+                    lobby::UpdateError::NotHost => {
+                        return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
+                    }
+                },
+            }
 
             let document = ResourcesDocument {
                 data: Some(Resources::Individual(lobby.to_resource(Variation::Root))),
@@ -487,25 +514,6 @@ async fn actions_leave(
     };
 
     Ok((StatusCode::OK, Json(document)).into_response())
-}
-
-impl LobbyOld {
-    pub fn update_attributes(&self, attributes: &LobbyAttributes) -> LobbyOld {
-        LobbyOld {
-            id: self.id,
-            name: attributes.name.as_ref().unwrap_or(&self.name).clone(),
-            host: self.host,
-            passcode: attributes
-                .passcode
-                .as_ref()
-                .or(self.passcode.as_ref())
-                .cloned(),
-            require_passcode: *attributes
-                .require_passcode
-                .as_ref()
-                .unwrap_or(&self.require_passcode),
-        }
-    }
 }
 
 impl ToResource for LobbyOld {

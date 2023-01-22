@@ -1,5 +1,6 @@
 use crate::domain::{LobbyId, UserId};
 
+#[allow(clippy::module_name_repetitions)]
 pub struct LobbyOld {
     pub id: LobbyId,
     pub name: String,

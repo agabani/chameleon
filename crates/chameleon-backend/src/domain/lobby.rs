@@ -3,12 +3,12 @@ use super::{LobbyId, UserId};
 pub struct Lobby {
     pub id: LobbyId,
     pub name: String,
-    pub members: Vec<LobbyMember>,
+    pub members: Vec<Member>,
     pub passcode: Option<String>,
     pub require_passcode: bool,
 }
 
-pub struct LobbyMember {
+pub struct Member {
     pub host: bool,
     pub user_id: UserId,
 }
@@ -16,12 +16,10 @@ pub struct LobbyMember {
 impl Lobby {
     pub fn create(
         name: String,
-        host: UserId,
+        actor: UserId,
         passcode: Option<String>,
         require_passcode: bool,
     ) -> Result<(Self, Vec<Events>), CreateError> {
-        let mut events = Vec::new();
-
         if require_passcode && passcode.is_none() {
             return Err(CreateError::MissingPasscode);
         }
@@ -29,70 +27,64 @@ impl Lobby {
         let this = Self {
             id: LobbyId::random(),
             name: name.clone(),
-            members: vec![LobbyMember {
+            members: vec![Member {
                 host: true,
-                user_id: host,
+                user_id: actor,
             }],
             passcode: passcode.clone(),
             require_passcode,
         };
 
-        events.push(Events::Created(CreatedEvent {
-            id: this.id,
-            name,
-            passcode,
-            require_passcode,
-        }));
-        events.push(Events::Joined(host));
-        events.push(Events::HostGranted(host));
-
-        Ok((this, events))
+        Ok((
+            this,
+            vec![
+                Events::Created(CreatedEvent {
+                    name,
+                    passcode,
+                    require_passcode,
+                }),
+                Events::Joined(actor),
+                Events::HostGranted(actor),
+            ],
+        ))
     }
 
     /// Join.
     pub fn join(
         &mut self,
-        user_id: UserId,
+        actor: UserId,
         passcode: &Option<String>,
     ) -> Result<Vec<Events>, JoinError> {
-        let mut events = Vec::new();
-
         if self.require_passcode && &self.passcode != passcode {
             return Err(JoinError::IncorrectPasscode);
         }
 
-        if self
-            .members
-            .iter()
-            .find(|member| member.user_id == user_id)
-            .is_some()
-        {
+        if self.members.iter().any(|member| member.user_id == actor) {
             return Err(JoinError::AlreadyJoined);
         }
 
-        self.members.push(LobbyMember {
-            user_id,
+        self.members.push(Member {
+            user_id: actor,
             host: false,
         });
-        events.push(Events::Joined(user_id));
 
-        Ok(events)
+        Ok(vec![Events::Joined(actor)])
     }
 
     /// Leave.
-    pub fn leave(&mut self, user_id: UserId) -> Result<Vec<Events>, LeaveError> {
-        let mut events = Vec::new();
-
+    pub fn leave(&mut self, actor: UserId) -> Result<Vec<Events>, LeaveError> {
         let Some((index, _)) = self
             .members
             .iter()
             .enumerate()
-            .find(|member| member.1.user_id == user_id) else {
+            .find(|member| member.1.user_id == actor) else {
                 return Err(LeaveError::NotMember)
             };
 
+        let mut events = Vec::new();
+
         let member = self.members.remove(index);
-        events.push(Events::Left(user_id));
+        events.push(Events::Left(actor));
 
         if self.members.is_empty() {
             events.push(Events::Empty);
@@ -111,23 +103,63 @@ impl Lobby {
     /// Send chat message.
     pub fn send_chat_message(
         &mut self,
-        user_id: UserId,
+        actor: UserId,
         message: String,
     ) -> Result<Vec<Events>, SendChatMessageError> {
-        let mut events = Vec::new();
-
-        if !self
-            .members
-            .iter()
-            .find(|member| member.user_id == user_id)
-            .is_none()
-        {
+        if !self.members.iter().any(|member| member.user_id == actor) {
             return Err(SendChatMessageError::NotMember);
         }
 
-        events.push(Events::ChatMessage(ChatMessageEvent { user_id, message }));
+        Ok(vec![Events::ChatMessage(ChatMessageEvent {
+            user_id: actor,
+            message,
+        })])
+    }
 
-        Ok(events)
+    /// Update.
+    pub fn update(
+        &mut self,
+        actor: UserId,
+        name: &Option<String>,
+        passcode: &Option<String>,
+        require_passcode: Option<bool>,
+    ) -> Result<Vec<Events>, UpdateError> {
+        if !self
+            .members
+            .iter()
+            .any(|member| member.host && member.user_id == actor)
+        {
+            return Err(UpdateError::NotHost);
+        }
+
+        {
+            let require_password = match require_passcode {
+                Some(require_passcode) => require_passcode,
+                None => self.require_passcode,
+            };
+            let passcode = self.passcode.is_some() || passcode.is_some();
+            if require_password && !passcode {
+                return Err(UpdateError::MissingPasscode);
+            }
+        }
+
+        if let Some(name) = &name {
+            self.name = name.clone();
+        }
+
+        if let Some(passcode) = &passcode {
+            self.passcode = Some(passcode.clone());
+        }
+
+        if let Some(require_passcode) = require_passcode {
+            self.require_passcode = require_passcode;
+        }
+
+        Ok(vec![Events::Updated(UpdatedEvent {
+            name: self.name.clone(),
+            passcode: self.passcode.clone(),
+            require_passcode: self.require_passcode,
+        })])
     }
 }
 
@@ -139,6 +171,7 @@ pub enum Events {
     HostRevoked(UserId),
     Joined(UserId),
     Left(UserId),
+    Updated(UpdatedEvent),
 }
 
 pub struct ChatMessageEvent {
@@ -147,7 +180,12 @@ pub struct ChatMessageEvent {
 }
 
 pub struct CreatedEvent {
-    pub id: LobbyId,
+    pub name: String,
+    pub passcode: Option<String>,
+    pub require_passcode: bool,
+}
+
+pub struct UpdatedEvent {
     pub name: String,
     pub passcode: Option<String>,
     pub require_passcode: bool,
@@ -168,4 +206,9 @@ pub enum LeaveError {
 
 pub enum SendChatMessageError {
     NotMember,
+}
+
+pub enum UpdateError {
+    MissingPasscode,
+    NotHost,
 }

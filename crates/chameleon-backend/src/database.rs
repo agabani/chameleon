@@ -221,26 +221,6 @@ impl Database {
         .await
     }
 
-    pub async fn update_lobby<'c, E>(conn: E, lobby: &LobbyOld) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"UPDATE lobby
-            SET name = $2,
-                passcode = $3,
-                require_passcode = $4
-            WHERE public_id = $1"#,
-            lobby.id.0,
-            lobby.name,
-            lobby.passcode,
-            lobby.require_passcode,
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
-    }
-
     pub async fn update_user<'c, E>(conn: E, user: &User) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
@@ -295,7 +275,7 @@ impl Database {
             name: lobby.name,
             members: members
                 .into_iter()
-                .map(|member| lobby::LobbyMember {
+                .map(|member| lobby::Member {
                     host: member.host,
                     user_id: UserId(member.public_id),
                 })
@@ -323,12 +303,12 @@ impl Database {
                             message: Some(chat_message.message.clone()),
                         }),
                     )
-                    .await?
+                    .await?;
                 }
                 lobby::Events::Created(event) => {
                     Self::insert_lobby(
                         &mut transaction,
-                        event.id,
+                        lobby_id,
                         &event.name,
                         &event.passcode,
                         event.require_passcode,
@@ -365,6 +345,16 @@ impl Database {
                         frames::LobbyRequest::UserLeft(frames::LobbyUserLeft {
                             user_id: Some(user_id.0.to_string()),
                         }),
+                    )
+                    .await?;
+                }
+                lobby::Events::Updated(event) => {
+                    Self::update_lobby(
+                        &mut transaction,
+                        lobby_id,
+                        &event.name,
+                        &event.passcode,
+                        event.require_passcode,
                     )
                     .await?;
                 }
@@ -478,6 +468,32 @@ impl Database {
             frame
         )
         .execute(conn)
+        .await
+        .map(|_| ())
+    }
+
+    async fn update_lobby<'c, E>(
+        executor: E,
+        lobby_id: LobbyId,
+        name: &str,
+        passcode: &Option<String>,
+        require_passcode: bool,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"UPDATE lobby
+            SET name = $2,
+                passcode = $3,
+                require_passcode = $4
+            WHERE public_id = $1"#,
+            lobby_id.0,
+            name,
+            passcode.clone(),
+            require_passcode,
+        )
+        .execute(executor)
         .await
         .map(|_| ())
     }
