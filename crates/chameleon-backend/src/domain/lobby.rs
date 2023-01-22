@@ -13,6 +13,12 @@ pub struct Member {
     pub user_id: UserId,
 }
 
+pub struct Query {
+    pub id: LobbyId,
+    pub name: String,
+    pub require_passcode: bool,
+}
+
 impl Lobby {
     pub fn create(
         name: String,
@@ -47,6 +53,15 @@ impl Lobby {
                 Events::HostGranted(actor),
             ],
         ))
+    }
+
+    /// Get host
+    pub fn get_host(&self) -> UserId {
+        self.members
+            .iter()
+            .find(|member| member.host)
+            .unwrap()
+            .user_id
     }
 
     /// Is member

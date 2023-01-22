@@ -152,6 +152,45 @@
     },
     "query": "INSERT INTO lobby (public_id, name, passcode, require_passcode)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (public_id) DO UPDATE\n                SET name = $2,\n                    passcode = $3,\n                    require_passcode = $4;"
   },
+  "88f393f69361a032e357491b00dbbdefca15083d456ddb047032b51a686455b3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "public_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "require_passcode",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "SELECT l.id, l.public_id, l.name, l.require_passcode\n            FROM lobby l\n            WHERE l.id > $1\n            ORDER BY l.id\n            LIMIT $2;"
+  },
   "9a253732f9059dcac0630f2c38df67a08bd3cf8c887074ba9a1c95f30c78a528": {
     "describe": {
       "columns": [
@@ -238,57 +277,6 @@
       }
     },
     "query": "UPDATE lobby_member\n            SET host = $3\n            WHERE lobby_id = (SELECT id FROM lobby WHERE public_id = $1)\n              AND user_id = (SELECT id FROM \"user\" WHERE public_id = $2);"
-  },
-  "c636fb09ae77f51749561abdb5bb62639cb5033da36782cc7d3cf36426eebc52": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int8"
-        },
-        {
-          "name": "public_id",
-          "ordinal": 1,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "passcode",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "require_passcode",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "host_public_id",
-          "ordinal": 5,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        true,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int8",
-          "Int8"
-        ]
-      }
-    },
-    "query": "SELECT l.id, l.public_id, l.name, l.passcode, l.require_passcode, u.public_id host_public_id\n            FROM lobby l\n                     JOIN lobby_member lm ON l.id = lm.lobby_id\n                     JOIN \"user\" u ON u.id = lm.user_id\n            WHERE l.id > $1\n              AND lm.host IS TRUE\n            ORDER BY l.id\n            LIMIT $2;"
   },
   "d5e1efd826a6d44a22c1f9d755c7de604cc80ba57a3fbd01dffdc26b2c2a8251": {
     "describe": {

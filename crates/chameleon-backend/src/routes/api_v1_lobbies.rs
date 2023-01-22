@@ -18,7 +18,6 @@ use crate::{
     app::AppState,
     database::Database,
     domain::{lobby, LobbyId, LocalId, UserId},
-    domain_old::LobbyOld,
     error::ApiError,
 };
 
@@ -138,7 +137,7 @@ async fn get_one(
     local_id: LocalId,
     Path(lobby_id): Path<LobbyId>,
 ) -> Result<Response, ApiError> {
-    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+    let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
 
@@ -261,13 +260,13 @@ async fn get_relationships_host(
     local_id: LocalId,
     Path(lobby_id): Path<LobbyId>,
 ) -> Result<Response, ApiError> {
-    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+    let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
 
     let document = ResourceIdentifiersDocument {
         data: Some(ResourceIdentifiers::Individual(
-            lobby.host.to_resource_identifier(),
+            lobby.get_host().to_resource_identifier(),
         )),
         errors: None,
         links: Some(Links(
@@ -300,11 +299,11 @@ async fn get_host(
     local_id: LocalId,
     Path(lobby_id): Path<LobbyId>,
 ) -> Result<Response, ApiError> {
-    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+    let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
 
-    let user = Database::select_user(&app_state.postgres_pool, lobby.host)
+    let user = Database::select_user(&app_state.postgres_pool, lobby.get_host())
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
 
@@ -516,53 +515,6 @@ async fn actions_leave(
     Ok((StatusCode::OK, Json(document)).into_response())
 }
 
-impl ToResource for LobbyOld {
-    const PATH: &'static str = PATH;
-
-    const TYPE: &'static str = TYPE;
-
-    type Attributes = LobbyAttributes;
-
-    fn __attributes(&self) -> Option<Self::Attributes> {
-        Some(Self::Attributes {
-            name: Some(self.name.to_string()),
-            passcode: None,
-            require_passcode: Some(self.require_passcode),
-        })
-    }
-
-    fn __id(&self) -> String {
-        self.id.0.to_string()
-    }
-
-    fn __relationships(&self) -> Option<Relationships> {
-        Some(Relationships(
-            [(
-                "host".to_string(),
-                Relationship {
-                    data: Some(ResourceIdentifiers::Individual(
-                        self.host.to_resource_identifier(),
-                    )),
-                    links: Some(Links(
-                        [
-                            (
-                                "self".to_string(),
-                                format!("{}/{}/relationships/host", Self::PATH, self.id.0),
-                            ),
-                            (
-                                "related".to_string(),
-                                format!("{}/{}/host", Self::PATH, self.id.0),
-                            ),
-                        ]
-                        .into(),
-                    )),
-                },
-            )]
-            .into(),
-        ))
-    }
-}
-
 impl ToResource for lobby::Lobby {
     const PATH: &'static str = PATH;
 
@@ -612,6 +564,30 @@ impl ToResource for lobby::Lobby {
             )]
             .into(),
         ))
+    }
+}
+
+impl ToResource for lobby::Query {
+    const PATH: &'static str = PATH;
+
+    const TYPE: &'static str = TYPE;
+
+    type Attributes = LobbyAttributes;
+
+    fn __attributes(&self) -> Option<Self::Attributes> {
+        Some(Self::Attributes {
+            name: Some(self.name.to_string()),
+            passcode: None,
+            require_passcode: Some(self.require_passcode),
+        })
+    }
+
+    fn __id(&self) -> String {
+        self.id.0.to_string()
+    }
+
+    fn __relationships(&self) -> Option<Relationships> {
+        None
     }
 }
 

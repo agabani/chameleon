@@ -6,7 +6,7 @@ use sqlx::{postgres::PgListener, Executor, Pool, Postgres};
 
 use crate::{
     domain::{lobby, LobbyId, LocalId, UserId},
-    domain_old::{LobbyOld, User},
+    domain_old::User,
 };
 
 pub struct Database {}
@@ -54,17 +54,14 @@ impl Database {
     pub async fn query_lobby<'c, E>(
         conn: E,
         keyset_pagination: KeysetPagination,
-    ) -> Result<(Vec<LobbyOld>, i64), sqlx::Error>
+    ) -> Result<(Vec<lobby::Query>, i64), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
         let records = sqlx::query!(
-            r#"SELECT l.id, l.public_id, l.name, l.passcode, l.require_passcode, u.public_id host_public_id
+            r#"SELECT l.id, l.public_id, l.name, l.require_passcode
             FROM lobby l
-                     JOIN lobby_member lm ON l.id = lm.lobby_id
-                     JOIN "user" u ON u.id = lm.user_id
             WHERE l.id > $1
-              AND lm.host IS TRUE
             ORDER BY l.id
             LIMIT $2;"#,
             keyset_pagination.id,
@@ -79,11 +76,9 @@ impl Database {
 
         let lobbies = records
             .into_iter()
-            .map(|record| LobbyOld {
+            .map(|record| lobby::Query {
                 id: LobbyId(record.public_id),
                 name: record.name,
-                host: UserId(record.host_public_id),
-                passcode: record.passcode,
                 require_passcode: record.require_passcode,
             })
             .collect();
@@ -128,35 +123,6 @@ impl Database {
             .collect();
 
         Ok((users, last_record_id))
-    }
-
-    pub async fn select_lobby<'c, E>(
-        conn: E,
-        lobby_id: LobbyId,
-    ) -> Result<Option<LobbyOld>, sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"SELECT l.public_id, l.name, l.passcode, l.require_passcode, u.public_id host_public_id
-            FROM lobby l
-                     JOIN lobby_member lm ON l.id = lm.lobby_id
-                     JOIN "user" u ON u.id = lm.user_id
-            WHERE l.public_id = $1
-              AND lm.host IS TRUE;"#,
-            lobby_id.0
-        )
-        .fetch_optional(conn)
-        .await
-        .map(|record| {
-            record.map(|record| LobbyOld {
-                id: LobbyId(record.public_id),
-                name: record.name,
-                host: UserId(record.host_public_id),
-                passcode: record.passcode,
-                require_passcode: record.require_passcode
-            })
-        })
     }
 
     pub async fn select_user<'c, E>(conn: E, user_id: UserId) -> Result<Option<User>, sqlx::Error>
