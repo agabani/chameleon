@@ -8,7 +8,6 @@ use axum::{
 };
 use chameleon_protocol::{
     attributes::{ChatMessageAttributes, LobbyAttributes},
-    frames::{LobbyChatMessage, LobbyRequest},
     jsonapi::{
         self, Links, Pagination, Relationship, Relationships, ResourceIdentifiers,
         ResourceIdentifiersDocument, Resources, ResourcesDocument,
@@ -52,7 +51,10 @@ pub fn router() -> Router<AppState> {
         )
         .route("/:lobby_id/members", get(get_members))
         // actions
-        .route("/:lobby_id/actions/chat_message", post(create_chat_message))
+        .route(
+            "/:lobby_id/actions/chat_message",
+            post(actions_chat_message),
+        )
         .route("/:lobby_id/actions/join", post(actions_join))
         .route("/:lobby_id/actions/leave", post(actions_leave))
 }
@@ -364,19 +366,15 @@ async fn get_members(
 }
 
 #[tracing::instrument(skip(app_state))]
-async fn create_chat_message(
+async fn actions_chat_message(
     State(app_state): State<AppState>,
     user_id: UserId,
     Path(lobby_id): Path<LobbyId>,
     Json(document): Json<ResourcesDocument<ChatMessageAttributes>>,
 ) -> Result<Response, ApiError> {
-    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+    let mut lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
-
-    if !Database::is_lobby_member(&app_state.postgres_pool, lobby_id, user_id).await? {
-        return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
-    }
 
     let message = document
         .try_get_resources()
@@ -384,15 +382,14 @@ async fn create_chat_message(
         .and_then(|r| r.try_get_attribute(|a| a.message.as_ref(), "message", "Message"))?
         .clone();
 
-    Database::notify_lobby(
-        &app_state.postgres_pool,
-        lobby.id,
-        LobbyRequest::ChatMessage(LobbyChatMessage {
-            user_id: Some(user_id.0.to_string()),
-            message: Some(message.clone()),
-        }),
-    )
-    .await?;
+    match lobby.send_chat_message(user_id, message.clone()) {
+        Ok(events) => Database::save_lobby(&app_state.postgres_pool, lobby_id, &events).await?,
+        Err(error) => match error {
+            lobby::SendChatMessageError::NotMember => {
+                return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())))
+            }
+        },
+    };
 
     Ok((
         StatusCode::ACCEPTED,

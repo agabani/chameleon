@@ -16,28 +16,6 @@ impl Database {
         PgListener::connect_with(conn).await
     }
 
-    pub async fn notify_lobby<'c, E>(
-        conn: E,
-        lobby_id: LobbyId,
-        lobby_request: LobbyRequest,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        let frame = LobbyFrame::new_request(None, lobby_request)
-            .to_string()
-            .unwrap();
-
-        sqlx::query!(
-            r#"SELECT pg_notify($1, $2)"#,
-            format!("/lobbies/{}", lobby_id.0),
-            frame
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
-    }
-
     pub async fn insert_lobby<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
@@ -373,6 +351,17 @@ impl Database {
 
         for event in events {
             match event {
+                lobby::Events::ChatMessage(chat_message) => {
+                    Self::notify_lobby(
+                        &mut transaction,
+                        lobby_id,
+                        frames::LobbyRequest::ChatMessage(frames::LobbyChatMessage {
+                            user_id: Some(chat_message.user_id.0.to_string()),
+                            message: Some(chat_message.message.clone()),
+                        }),
+                    )
+                    .await?
+                }
                 lobby::Events::Empty => {
                     Self::delete_lobby(&mut transaction, lobby_id).await?;
                 }
@@ -467,6 +456,28 @@ impl Database {
             false
         )
         .execute(executor)
+        .await
+        .map(|_| ())
+    }
+
+    async fn notify_lobby<'c, E>(
+        conn: E,
+        lobby_id: LobbyId,
+        lobby_request: LobbyRequest,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        let frame = LobbyFrame::new_request(None, lobby_request)
+            .to_string()
+            .unwrap();
+
+        sqlx::query!(
+            r#"SELECT pg_notify($1, $2)"#,
+            format!("/lobbies/{}", lobby_id.0),
+            frame
+        )
+        .execute(conn)
         .await
         .map(|_| ())
     }

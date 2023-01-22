@@ -10,7 +10,24 @@ pub struct Lobby {
 }
 
 impl Lobby {
-    /// Join a lobby.
+    /// Send chat message.
+    pub fn send_chat_message(
+        &mut self,
+        user_id: UserId,
+        message: String,
+    ) -> Result<Vec<Events>, SendChatMessageError> {
+        let mut events = Vec::new();
+
+        if !self.members.contains(&user_id) {
+            return Err(SendChatMessageError::NotMember);
+        }
+
+        events.push(Events::ChatMessage(ChatMessageEvent { user_id, message }));
+
+        Ok(events)
+    }
+
+    /// Join.
     pub fn join(
         &mut self,
         user_id: UserId,
@@ -32,7 +49,7 @@ impl Lobby {
         Ok(events)
     }
 
-    /// Leave a lobby.
+    /// Leave.
     pub fn leave(&mut self, user_id: UserId) -> Result<Vec<Events>, LeaveError> {
         let mut events = Vec::new();
 
@@ -62,11 +79,21 @@ impl Lobby {
 }
 
 pub enum Events {
+    ChatMessage(ChatMessageEvent),
     Empty,
     HostGranted(UserId),
     HostRevoked(UserId),
     Joined(UserId),
     Left(UserId),
+}
+
+pub struct ChatMessageEvent {
+    pub user_id: UserId,
+    pub message: String,
+}
+
+pub enum SendChatMessageError {
+    NotMember,
 }
 
 pub enum JoinError {
