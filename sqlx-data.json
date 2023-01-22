@@ -120,6 +120,18 @@
     },
     "query": "DELETE\n            FROM lobby_member\n            WHERE lobby_id = ((SELECT id FROM lobby WHERE public_id = $1))\n                AND user_id = ((SELECT id FROM \"user\" WHERE public_id = $2));"
   },
+  "77f670bb71ca8ce8f8acadf0d0350f2f51d908414db65b752a0542c7ef8e6588": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "DELETE FROM lobby\n            WHERE public_id = $1;"
+  },
   "7c7d1837456b90cfcdeeb1f2d0e42dabb24baa4524279b65ea98edaae23f14cf": {
     "describe": {
       "columns": [],
@@ -207,6 +219,40 @@
       }
     },
     "query": "UPDATE \"user\"\n            SET name = $2\n            WHERE public_id = $1"
+  },
+  "b62350f23d4883339db3d2c9b25f60e10e9a7ce8d5a750c6bd4443616b0dbd13": {
+    "describe": {
+      "columns": [
+        {
+          "name": "public_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "SELECT u.public_id\n            FROM lobby_member lm\n                     JOIN \"user\" u on lm.user_id = u.id\n                     JOIN lobby l on lm.lobby_id = l.id\n            WHERE l.public_id = $1;\n            "
+  },
+  "bed92113e65aea5249089e0237d71ad752a73110e9baf9f4160b862307093556": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Bool"
+        ]
+      }
+    },
+    "query": "UPDATE lobby_member\n            SET host = $3\n            WHERE lobby_id = (SELECT id FROM lobby WHERE public_id = $1)\n              AND user_id = (SELECT id FROM \"user\" WHERE public_id = $2);"
   },
   "c636fb09ae77f51749561abdb5bb62639cb5033da36782cc7d3cf36426eebc52": {
     "describe": {

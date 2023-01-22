@@ -8,7 +8,7 @@ use axum::{
 };
 use chameleon_protocol::{
     attributes::{ChatMessageAttributes, LobbyAttributes},
-    frames::{LobbyChatMessage, LobbyRequest, LobbyUserJoined, LobbyUserLeft},
+    frames::{LobbyChatMessage, LobbyRequest},
     jsonapi::{
         self, Links, Pagination, Relationship, Relationships, ResourceIdentifiers,
         ResourceIdentifiersDocument, Resources, ResourcesDocument,
@@ -18,7 +18,7 @@ use chameleon_protocol::{
 use crate::{
     app::AppState,
     database::Database,
-    domain::{LobbyId, LocalId, UserId},
+    domain::{lobby, LobbyId, LocalId, UserId},
     domain_old::Lobby,
     error::ApiError,
 };
@@ -53,8 +53,8 @@ pub fn router() -> Router<AppState> {
         .route("/:lobby_id/members", get(get_members))
         // actions
         .route("/:lobby_id/actions/chat_message", post(create_chat_message))
-        .route("/:lobby_id/actions/join", post(create_lobby_member))
-        .route("/:lobby_id/actions/leave", post(delete_lobby_member))
+        .route("/:lobby_id/actions/join", post(actions_join))
+        .route("/:lobby_id/actions/leave", post(actions_leave))
 }
 
 #[tracing::instrument(skip(app_state))]
@@ -420,36 +420,41 @@ async fn create_chat_message(
 }
 
 #[tracing::instrument(skip(app_state))]
-async fn create_lobby_member(
+async fn actions_join(
     State(app_state): State<AppState>,
     user_id: UserId,
     Path(lobby_id): Path<LobbyId>,
     Json(document): Json<ResourcesDocument<LobbyAttributes>>,
 ) -> Result<Response, ApiError> {
-    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+    let mut lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
 
-    let user = Database::select_user(&app_state.postgres_pool, user_id)
-        .await?
-        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
-
-    if lobby.require_passcode {
+    let passcode = if lobby.require_passcode {
         let passcode = document
             .try_get_resources()?
             .try_get_individual()?
             .try_get_attribute(|a| a.passcode.as_ref(), "passcode", "Passcode")?;
+        Some(passcode.clone())
+    } else {
+        None
+    };
 
-        if lobby.passcode.as_ref().unwrap() != passcode {
-            return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
-        }
-    }
-
-    Database::insert_lobby_member(&app_state.postgres_pool, &lobby, &user).await?;
+    match lobby.join(user_id, &passcode) {
+        Ok(events) => Database::save_lobby(&app_state.postgres_pool, lobby_id, &events).await?,
+        Err(error) => match error {
+            lobby::JoinError::AlreadyJoined => {
+                // silently continue...
+            }
+            lobby::JoinError::IncorrectPasscode => {
+                return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
+            }
+        },
+    };
 
     let document = ResourceIdentifiersDocument {
         data: Some(ResourceIdentifiers::Individual(
-            user.id.to_resource_identifier(),
+            user_id.to_resource_identifier(),
         )),
         errors: None,
         links: Some(Links(
@@ -467,50 +472,27 @@ async fn create_lobby_member(
         )),
     };
 
-    Database::notify_lobby(
-        &app_state.postgres_pool,
-        lobby.id,
-        LobbyRequest::UserJoined(LobbyUserJoined {
-            user_id: Some(user_id.0.to_string()),
-        }),
-    )
-    .await?;
-
     Ok((StatusCode::OK, Json(document)).into_response())
 }
 
 #[tracing::instrument(skip(app_state))]
-async fn delete_lobby_member(
+async fn actions_leave(
     State(app_state): State<AppState>,
     user_id: UserId,
     Path(lobby_id): Path<LobbyId>,
 ) -> Result<Response, ApiError> {
-    let lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+    let mut lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
 
-    let user = Database::select_user(&app_state.postgres_pool, user_id)
-        .await?
-        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
-
-    if lobby.host == user.id {
-        return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
-    }
-
-    if !Database::is_lobby_member(&app_state.postgres_pool, lobby_id, user_id).await? {
-        return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
-    }
-
-    Database::delete_lobby_member(&app_state.postgres_pool, &lobby, &user).await?;
-
-    Database::notify_lobby(
-        &app_state.postgres_pool,
-        lobby.id,
-        LobbyRequest::UserLeft(LobbyUserLeft {
-            user_id: Some(user_id.0.to_string()),
-        }),
-    )
-    .await?;
+    match lobby.leave(user_id) {
+        Ok(events) => Database::save_lobby(&app_state.postgres_pool, lobby.id, &events).await?,
+        Err(error) => match error {
+            lobby::LeaveError::NotMember => {
+                return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
+            }
+        },
+    };
 
     let document = ResourceIdentifiersDocument {
         data: None,

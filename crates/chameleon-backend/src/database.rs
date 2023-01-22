@@ -1,11 +1,11 @@
 use chameleon_protocol::{
-    frames::{LobbyFrame, LobbyRequest},
+    frames::{self, LobbyFrame, LobbyRequest},
     jsonapi::{self, Source},
 };
 use sqlx::{postgres::PgListener, Executor, Pool, Postgres};
 
 use crate::{
-    domain::{LobbyId, LocalId, UserId},
+    domain::{lobby, LobbyId, LocalId, UserId},
     domain_old::{Lobby, User},
 };
 
@@ -36,27 +36,6 @@ impl Database {
         .execute(conn)
         .await
         .map(|_| ())
-    }
-
-    pub async fn delete_lobby_member<'c, E>(
-        conn: E,
-        lobby: &Lobby,
-        user: &User,
-    ) -> Result<bool, sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"DELETE
-            FROM lobby_member
-            WHERE lobby_id = ((SELECT id FROM lobby WHERE public_id = $1))
-                AND user_id = ((SELECT id FROM "user" WHERE public_id = $2));"#,
-            lobby.id.0,
-            user.id.0
-        )
-        .execute(conn)
-        .await
-        .map(|result| result.rows_affected() > 0)
     }
 
     pub async fn insert_lobby<'c, E>(conn: E, lobby: &Lobby) -> Result<(), sqlx::Error>
@@ -92,29 +71,6 @@ impl Database {
             lobby.id.0,
             lobby.host.0,
             true
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
-    }
-
-    pub async fn insert_lobby_member<'c, E>(
-        conn: E,
-        lobby: &Lobby,
-        user: &User,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"INSERT INTO lobby_member (lobby_id, user_id, host)
-            VALUES ((SELECT id FROM lobby WHERE public_id = $1),
-                    (SELECT id FROM "user" WHERE public_id = $2),
-                    $3)
-            ON CONFLICT DO NOTHING;"#,
-            lobby.id.0,
-            user.id.0,
-            false
         )
         .execute(conn)
         .await
@@ -358,6 +314,182 @@ impl Database {
             user.name,
         )
         .execute(conn)
+        .await
+        .map(|_| ())
+    }
+
+    pub async fn load_lobby<'c, E>(
+        conn: E,
+        lobby_id: LobbyId,
+    ) -> Result<Option<lobby::Lobby>, sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres> + Copy,
+    {
+        let Some(lobby) = sqlx::query!(
+            r#"SELECT l.public_id, l.name, l.passcode, l.require_passcode, u.public_id host_public_id
+            FROM lobby l
+                     JOIN lobby_member lm ON l.id = lm.lobby_id
+                     JOIN "user" u ON u.id = lm.user_id
+            WHERE l.public_id = $1
+              AND lm.host IS TRUE;"#,
+            lobby_id.0
+        )
+        .fetch_optional(conn)
+        .await? else {
+            return Ok(None);
+        };
+
+        let members = sqlx::query!(
+            r#"SELECT u.public_id
+            FROM lobby_member lm
+                     JOIN "user" u on lm.user_id = u.id
+                     JOIN lobby l on lm.lobby_id = l.id
+            WHERE l.public_id = $1;
+            "#,
+            lobby_id.0
+        )
+        .fetch_all(conn)
+        .await?;
+
+        Ok(Some(lobby::Lobby {
+            id: LobbyId(lobby.public_id),
+            name: lobby.name,
+            host: UserId(lobby.host_public_id),
+            members: members
+                .into_iter()
+                .map(|member| UserId(member.public_id))
+                .collect(),
+            passcode: lobby.passcode,
+            require_passcode: lobby.require_passcode,
+        }))
+    }
+
+    pub async fn save_lobby(
+        pool: &Pool<Postgres>,
+        lobby_id: LobbyId,
+        events: &[lobby::Events],
+    ) -> Result<(), sqlx::Error> {
+        let mut transaction = pool.begin().await?;
+
+        for event in events {
+            match event {
+                lobby::Events::Empty => {
+                    Self::delete_lobby(&mut transaction, lobby_id).await?;
+                }
+                lobby::Events::HostGranted(user_id) => {
+                    Self::update_lobby_member_host(&mut transaction, lobby_id, *user_id, true)
+                        .await?;
+                }
+                lobby::Events::HostRevoked(user_id) => {
+                    Self::update_lobby_member_host(&mut transaction, lobby_id, *user_id, false)
+                        .await?;
+                }
+                lobby::Events::Joined(user_id) => {
+                    Self::insert_lobby_member(&mut transaction, lobby_id, *user_id).await?;
+                    Self::notify_lobby(
+                        &mut transaction,
+                        lobby_id,
+                        frames::LobbyRequest::UserJoined(frames::LobbyUserJoined {
+                            user_id: Some(user_id.0.to_string()),
+                        }),
+                    )
+                    .await?;
+                }
+                lobby::Events::Left(user_id) => {
+                    Self::delete_lobby_member(&mut transaction, lobby_id, *user_id).await?;
+                    Self::notify_lobby(
+                        &mut transaction,
+                        lobby_id,
+                        frames::LobbyRequest::UserLeft(frames::LobbyUserLeft {
+                            user_id: Some(user_id.0.to_string()),
+                        }),
+                    )
+                    .await?;
+                }
+            }
+        }
+
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    async fn delete_lobby<'c, E>(executor: E, lobby_id: LobbyId) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"DELETE FROM lobby
+            WHERE public_id = $1;"#,
+            lobby_id.0,
+        )
+        .execute(executor)
+        .await
+        .map(|_| ())
+    }
+
+    async fn delete_lobby_member<'c, E>(
+        executor: E,
+        lobby_id: LobbyId,
+        user_id: UserId,
+    ) -> Result<bool, sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"DELETE
+            FROM lobby_member
+            WHERE lobby_id = ((SELECT id FROM lobby WHERE public_id = $1))
+                AND user_id = ((SELECT id FROM "user" WHERE public_id = $2));"#,
+            lobby_id.0,
+            user_id.0
+        )
+        .execute(executor)
+        .await
+        .map(|result| result.rows_affected() > 0)
+    }
+
+    async fn insert_lobby_member<'c, E>(
+        executor: E,
+        lobby_id: LobbyId,
+        user_id: UserId,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"INSERT INTO lobby_member (lobby_id, user_id, host)
+            VALUES ((SELECT id FROM lobby WHERE public_id = $1),
+                    (SELECT id FROM "user" WHERE public_id = $2),
+                    $3)
+            ON CONFLICT DO NOTHING;"#,
+            lobby_id.0,
+            user_id.0,
+            false
+        )
+        .execute(executor)
+        .await
+        .map(|_| ())
+    }
+
+    async fn update_lobby_member_host<'c, E>(
+        executor: E,
+        lobby_id: LobbyId,
+        user_id: UserId,
+        host: bool,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"UPDATE lobby_member
+            SET host = $3
+            WHERE lobby_id = (SELECT id FROM lobby WHERE public_id = $1)
+              AND user_id = (SELECT id FROM "user" WHERE public_id = $2);"#,
+            lobby_id.0,
+            user_id.0,
+            host
+        )
+        .execute(executor)
         .await
         .map(|_| ())
     }

@@ -1,3 +1,4 @@
+pub mod lobby;
 mod lobby_id;
 mod local_id;
 mod user_id;
