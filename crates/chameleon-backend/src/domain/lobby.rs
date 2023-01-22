@@ -49,6 +49,11 @@ impl Lobby {
         ))
     }
 
+    /// Is member
+    pub fn is_member(&self, user_id: UserId) -> bool {
+        self.members.iter().any(|member| member.user_id == user_id)
+    }
+
     /// Join.
     pub fn join(
         &mut self,

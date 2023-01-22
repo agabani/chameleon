@@ -23,7 +23,7 @@ use tracing::Instrument;
 use crate::{
     app::AppState,
     database::Database,
-    domain::{LobbyId, LocalId, UserId},
+    domain::{lobby, LobbyId, LocalId, UserId},
     error::ApiError,
 };
 
@@ -33,21 +33,22 @@ pub fn router() -> Router<AppState> {
     Router::new().route("/:id", get(get_one))
 }
 
+#[tracing::instrument(skip(app_state, web_socket_upgrade))]
 async fn get_one(
     State(app_state): State<AppState>,
     Path(lobby_id): Path<LobbyId>,
     web_socket_upgrade: WebSocketUpgrade,
 ) -> Result<Response, ApiError> {
-    let _lobby = Database::select_lobby(&app_state.postgres_pool, lobby_id)
+    let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| jsonapi::Error::not_found("lobby", "Lobby"))?;
 
     Ok(web_socket_upgrade
-        .on_upgrade(move |web_socket| get_one_handler(app_state, lobby_id, web_socket)))
+        .on_upgrade(move |web_socket| get_one_handler(app_state, lobby, web_socket)))
 }
 
-#[tracing::instrument(skip(app_state, web_socket))]
-async fn get_one_handler(app_state: AppState, lobby_id: LobbyId, web_socket: WebSocket) {
+#[tracing::instrument(skip(app_state, lobby, web_socket))]
+async fn get_one_handler(app_state: AppState, lobby: lobby::Lobby, web_socket: WebSocket) {
     let (mut sink, mut stream) = web_socket.split();
 
     let mut listener = Database::listener(&app_state.postgres_pool)
@@ -67,35 +68,21 @@ async fn get_one_handler(app_state: AppState, lobby_id: LobbyId, web_socket: Web
 
     tracing::info!(user_id =? user_id, "authenticated");
 
-    match Database::is_lobby_member(&app_state.postgres_pool, lobby_id, user_id).await {
-        Ok(true) => {
-            // do nothing...
-        }
-        Ok(false) => {
-            sink.send(Message::Text(
-                LobbyFrame::new_error(None, 403, "Forbidden".to_string())
-                    .to_string()
-                    .unwrap(),
-            ))
-            .await
-            .unwrap();
-            return;
-        }
-        Err(error) => {
-            sink.send(Message::Text(
-                LobbyFrame::internal_error(None).to_string().unwrap(),
-            ))
-            .await
-            .unwrap();
-            tracing::error!(error =? error, "error");
-            return;
-        }
-    };
+    if !lobby.is_member(user_id) {
+        sink.send(Message::Text(
+            LobbyFrame::new_error(None, 403, "Forbidden".to_string())
+                .to_string()
+                .unwrap(),
+        ))
+        .await
+        .unwrap();
+        return;
+    }
 
     tokio::spawn(
         async move {
             listener
-                .listen(&format!("/lobbies/{}", lobby_id.0))
+                .listen(&format!("/lobbies/{}", lobby.id.0))
                 .await
                 .expect("TODO: failed to listen");
 

@@ -13,27 +13,6 @@
     },
     "query": "INSERT INTO \"user\" (public_id, name)\n            VALUES ($1, $2);"
   },
-  "16d0db0250d818d3ca4714c56fac68cbad655c6ace9e90f7271c47a242ec486c": {
-    "describe": {
-      "columns": [
-        {
-          "name": "member",
-          "ordinal": 0,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "SELECT TRUE member\n            FROM lobby l\n                     JOIN lobby_member lm on l.id = lm.lobby_id\n                     JOIN \"user\" u on u.id = lm.user_id\n            WHERE l.public_id = $1\n              AND u.public_id = $2;"
-  },
   "17a5ef1e426215396af7ad9dc08945733f360a1f29c65bc5f8d07d497de9b109": {
     "describe": {
       "columns": [],
