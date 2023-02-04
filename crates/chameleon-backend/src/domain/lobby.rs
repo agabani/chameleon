@@ -21,9 +21,9 @@ pub struct Query {
 
 impl Lobby {
     pub fn create(
-        name: String,
+        name: &str,
         actor: UserId,
-        passcode: Option<String>,
+        passcode: Option<&str>,
         require_passcode: bool,
     ) -> Result<(Self, Vec<Events>), CreateError> {
         if require_passcode && passcode.is_none() {
@@ -32,27 +32,26 @@ impl Lobby {
 
         let this = Self {
             id: LobbyId::random(),
-            name: name.clone(),
+            name: name.to_string(),
             members: vec![Member {
                 host: true,
                 user_id: actor,
             }],
-            passcode: passcode.clone(),
+            passcode: passcode.map(ToString::to_string),
             require_passcode,
         };
 
-        Ok((
-            this,
-            vec![
-                Events::Created(CreatedEvent {
-                    name,
-                    passcode,
-                    require_passcode,
-                }),
-                Events::Joined(actor),
-                Events::HostGranted(actor),
-            ],
-        ))
+        let events = vec![
+            Events::Created(CreatedEvent {
+                name: this.name.clone(),
+                passcode: this.passcode.clone(),
+                require_passcode,
+            }),
+            Events::Joined(actor),
+            Events::HostGranted(actor),
+        ];
+
+        Ok((this, events))
     }
 
     /// Get host
@@ -73,9 +72,9 @@ impl Lobby {
     pub fn join(
         &mut self,
         actor: UserId,
-        passcode: &Option<String>,
+        passcode: Option<&str>,
     ) -> Result<Vec<Events>, JoinError> {
-        if self.require_passcode && &self.passcode != passcode {
+        if self.require_passcode && self.passcode.as_ref().map(String::as_str) != passcode {
             return Err(JoinError::IncorrectPasscode);
         }
 
@@ -124,7 +123,7 @@ impl Lobby {
     pub fn send_chat_message(
         &mut self,
         actor: UserId,
-        message: String,
+        message: &str,
     ) -> Result<Vec<Events>, SendChatMessageError> {
         if !self.members.iter().any(|member| member.user_id == actor) {
             return Err(SendChatMessageError::NotMember);
@@ -132,7 +131,7 @@ impl Lobby {
 
         Ok(vec![Events::ChatMessage(ChatMessageEvent {
             user_id: actor,
-            message,
+            message: message.to_string(),
         })])
     }
 
@@ -140,8 +139,8 @@ impl Lobby {
     pub fn update(
         &mut self,
         actor: UserId,
-        name: &Option<String>,
-        passcode: &Option<String>,
+        name: Option<&str>,
+        passcode: Option<&str>,
         require_passcode: Option<bool>,
     ) -> Result<Vec<Events>, UpdateError> {
         if !self
@@ -163,12 +162,12 @@ impl Lobby {
             }
         }
 
-        if let Some(name) = &name {
-            self.name = name.clone();
+        if let Some(name) = name {
+            self.name = name.to_string();
         }
 
-        if let Some(passcode) = &passcode {
-            self.passcode = Some(passcode.clone());
+        if let Some(passcode) = passcode {
+            self.passcode = Some(passcode.to_string());
         }
 
         if let Some(require_passcode) = require_passcode {

@@ -36,7 +36,9 @@ async fn create_one(
     local_id: local_id::LocalId,
     Json(document): Json<ResourcesDocument<UserAttributes>>,
 ) -> Result<Response, ApiError> {
-    if Database::select_user_id_by_local_id(&state.postgres_pool, local_id)
+    let name = document.try_get_attribute(|a| a.name.as_ref(), "name", "Name")?;
+
+    if Database::select_user_id_by_local_id(&state.pool, local_id)
         .await?
         .is_some()
     {
@@ -52,14 +54,9 @@ async fn create_one(
         })));
     }
 
-    let name = document
-        .try_get_resources()?
-        .try_get_individual()?
-        .try_get_attribute(|a| a.name.as_ref(), "name", "Name")?;
-
     let user = match user::User::signup(local_id, name) {
         Ok((user, events)) => {
-            Database::save_user(&state.postgres_pool, user.id, &events).await?;
+            Database::save_user(&state.pool, user.id, &events).await?;
             user
         }
         Err(error) => match error {},
@@ -87,7 +84,7 @@ async fn get_one(
     local_id: local_id::LocalId,
     Path(id): Path<user_id::UserId>,
 ) -> Result<Response, ApiError> {
-    let user = Database::load_user(&state.postgres_pool, id)
+    let user = Database::load_user(&state.pool, id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
 
@@ -109,18 +106,18 @@ async fn update_one(
     Path(id): Path<user_id::UserId>,
     Json(document): Json<ResourcesDocument<UserAttributes>>,
 ) -> Result<Response, ApiError> {
-    let mut user = Database::load_user(&state.postgres_pool, id)
-        .await?
-        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
-
     let name = document
-        .try_get_attribute(|accessor| accessor.name.as_ref(), "name", "Name")
+        .try_get_attribute(|a| a.name.as_ref(), "name", "Name")
         .ok()
         .map(String::as_str);
 
+    let mut user = Database::load_user(&state.pool, id)
+        .await?
+        .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
+
     match user.update(user_id, name) {
         Ok(events) => {
-            Database::save_user(&state.postgres_pool, user.id, &events).await?;
+            Database::save_user(&state.pool, user.id, &events).await?;
         }
         Err(error) => match error {
             user::UpdateError::NotOwner => {

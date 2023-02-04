@@ -23,7 +23,9 @@ pub async fn app() {
         .await
         .expect("Failed to migrate postgres database");
 
-    let state = AppState { postgres_pool };
+    let state = AppState {
+        pool: postgres_pool,
+    };
 
     let app = Router::new()
         .merge(SpaRouter::new("/assets", "dist"))
@@ -43,5 +45,5 @@ pub async fn app() {
 #[allow(clippy::module_name_repetitions)]
 #[derive(Clone)]
 pub struct AppState {
-    pub postgres_pool: Pool<Postgres>,
+    pub pool: Pool<Postgres>,
 }

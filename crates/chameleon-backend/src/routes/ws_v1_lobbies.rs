@@ -39,7 +39,7 @@ async fn get_one(
     Path(lobby_id): Path<lobby_id::LobbyId>,
     web_socket_upgrade: WebSocketUpgrade,
 ) -> Result<Response, ApiError> {
-    let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
+    let lobby = Database::load_lobby(&app_state.pool, lobby_id)
         .await?
         .ok_or_else(|| jsonapi::Error::not_found("lobby", "Lobby"))?;
 
@@ -51,7 +51,7 @@ async fn get_one(
 async fn get_one_handler(app_state: AppState, lobby: lobby::Lobby, web_socket: WebSocket) {
     let (mut sink, mut stream) = web_socket.split();
 
-    let mut listener = Database::listener(&app_state.postgres_pool)
+    let mut listener = Database::listener(&app_state.pool)
         .await
         .expect("TODO: Failed to get listener");
 
@@ -175,7 +175,7 @@ async fn authentication(
         };
 
         let Ok(user_id) =
-            Database::select_user_id_by_local_id(&app_state.postgres_pool, local_id).await else {
+            Database::select_user_id_by_local_id(&app_state.pool, local_id).await else {
                 sink.send(Message::Text(LobbyFrame::internal_error(id).to_string().unwrap())).await.unwrap();
                 continue;
             };

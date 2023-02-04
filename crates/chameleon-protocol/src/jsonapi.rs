@@ -453,6 +453,13 @@ impl<T> ResourcesDocument<T> {
             .try_get_field(accessor, name, display)
     }
 
+    /// Try get individual resource.
+    ///
+    /// Convenience method.
+    pub fn try_get_individual(&self) -> Result<&Resource<T>, Box<Error>> {
+        self.try_get_resources()?.try_get_individual()
+    }
+
     /// Try get relationship of individual resource.
     ///
     /// Convenience method.
