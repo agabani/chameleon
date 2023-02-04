@@ -1,4 +1,4 @@
-use super::{LobbyId, UserId};
+use super::{lobby_id::LobbyId, user_id::UserId};
 
 pub struct Lobby {
     pub id: LobbyId,

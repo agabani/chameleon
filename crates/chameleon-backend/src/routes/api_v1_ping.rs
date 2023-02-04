@@ -1,4 +1,4 @@
-use crate::{app::AppState, domain::LocalId, error::ApiError};
+use crate::{app::AppState, domain::local_id, error::ApiError};
 
 use axum::{
     http::StatusCode,
@@ -16,6 +16,6 @@ pub fn router() -> Router<AppState> {
 
 #[allow(clippy::unused_async)] // reason = "required by `axum::Router`"
 #[tracing::instrument]
-async fn handle(local_id: LocalId) -> Result<Response, ApiError> {
+async fn handle(local_id: local_id::LocalId) -> Result<Response, ApiError> {
     Ok((StatusCode::OK, Json(json!({}))).into_response())
 }

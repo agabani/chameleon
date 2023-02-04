@@ -17,7 +17,7 @@ use chameleon_protocol::{
 use crate::{
     app::AppState,
     database::Database,
-    domain::{lobby, LobbyId, LocalId, UserId},
+    domain::{lobby, lobby_id, local_id, user_id},
     error::ApiError,
 };
 
@@ -61,7 +61,7 @@ pub fn router() -> Router<AppState> {
 #[tracing::instrument(skip(app_state))]
 async fn create_one(
     State(app_state): State<AppState>,
-    user_id: UserId,
+    user_id: user_id::UserId,
     Json(document): Json<ResourcesDocument<LobbyAttributes>>,
 ) -> Result<Response, ApiError> {
     let resources = document.try_get_resources()?;
@@ -134,8 +134,8 @@ async fn create_one(
 #[tracing::instrument(skip(app_state))]
 async fn get_one(
     State(app_state): State<AppState>,
-    local_id: LocalId,
-    Path(lobby_id): Path<LobbyId>,
+    local_id: local_id::LocalId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
 ) -> Result<Response, ApiError> {
     let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
@@ -155,7 +155,7 @@ async fn get_one(
 #[tracing::instrument(skip(app_state))]
 async fn get_many(
     State(app_state): State<AppState>,
-    local_id: LocalId,
+    local_id: local_id::LocalId,
     Query(pagination): Query<Pagination>,
 ) -> Result<Response, ApiError> {
     let keyset_pagination = pagination.try_into()?;
@@ -198,8 +198,8 @@ async fn get_many(
 #[tracing::instrument(skip(app_state))]
 async fn update_one(
     State(app_state): State<AppState>,
-    user_id: UserId,
-    Path(lobby_id): Path<LobbyId>,
+    user_id: user_id::UserId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
     Json(document): Json<ResourcesDocument<LobbyAttributes>>,
 ) -> Result<Response, ApiError> {
     let mut lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
@@ -257,8 +257,8 @@ async fn update_one(
 #[tracing::instrument(skip(app_state))]
 async fn get_relationships_host(
     State(app_state): State<AppState>,
-    local_id: LocalId,
-    Path(lobby_id): Path<LobbyId>,
+    local_id: local_id::LocalId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
 ) -> Result<Response, ApiError> {
     let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
@@ -287,8 +287,8 @@ async fn get_relationships_host(
 #[tracing::instrument(skip(_app_state))]
 async fn update_relationships_host(
     State(_app_state): State<AppState>,
-    user_id: UserId,
-    Path(lobby_id): Path<LobbyId>,
+    user_id: user_id::UserId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
 ) -> Result<Response, ApiError> {
     Ok(StatusCode::NOT_IMPLEMENTED.into_response())
 }
@@ -296,14 +296,14 @@ async fn update_relationships_host(
 #[tracing::instrument(skip(app_state))]
 async fn get_host(
     State(app_state): State<AppState>,
-    local_id: LocalId,
-    Path(lobby_id): Path<LobbyId>,
+    local_id: local_id::LocalId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
 ) -> Result<Response, ApiError> {
     let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("lobby", "Lobby"))))?;
 
-    let user = Database::select_user(&app_state.postgres_pool, lobby.get_host())
+    let user = Database::load_user(&app_state.postgres_pool, lobby.get_host())
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
 
@@ -321,8 +321,8 @@ async fn get_host(
 #[tracing::instrument(skip(_app_state))]
 async fn get_relationships_members(
     State(_app_state): State<AppState>,
-    local_id: LocalId,
-    Path(lobby_id): Path<LobbyId>,
+    local_id: local_id::LocalId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
 ) -> Result<Response, ApiError> {
     Ok(StatusCode::NOT_IMPLEMENTED.into_response())
 }
@@ -330,8 +330,8 @@ async fn get_relationships_members(
 #[tracing::instrument(skip(_app_state))]
 async fn update_relationships_members(
     State(_app_state): State<AppState>,
-    user_id: UserId,
-    Path(lobby_id): Path<LobbyId>,
+    user_id: user_id::UserId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
 ) -> Result<Response, ApiError> {
     Ok(StatusCode::NOT_IMPLEMENTED.into_response())
 }
@@ -339,8 +339,8 @@ async fn update_relationships_members(
 #[tracing::instrument(skip(app_state))]
 async fn get_members(
     State(app_state): State<AppState>,
-    local_id: LocalId,
-    Path(lobby_id): Path<LobbyId>,
+    local_id: local_id::LocalId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
     Query(pagination): Query<Pagination>,
 ) -> Result<Response, ApiError> {
     let keyset_pagination = pagination.try_into()?;
@@ -383,8 +383,8 @@ async fn get_members(
 #[tracing::instrument(skip(app_state))]
 async fn actions_chat_message(
     State(app_state): State<AppState>,
-    user_id: UserId,
-    Path(lobby_id): Path<LobbyId>,
+    user_id: user_id::UserId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
     Json(document): Json<ResourcesDocument<ChatMessageAttributes>>,
 ) -> Result<Response, ApiError> {
     let mut lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
@@ -434,8 +434,8 @@ async fn actions_chat_message(
 #[tracing::instrument(skip(app_state))]
 async fn actions_join(
     State(app_state): State<AppState>,
-    user_id: UserId,
-    Path(lobby_id): Path<LobbyId>,
+    user_id: user_id::UserId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
     Json(document): Json<ResourcesDocument<LobbyAttributes>>,
 ) -> Result<Response, ApiError> {
     let mut lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
@@ -490,8 +490,8 @@ async fn actions_join(
 #[tracing::instrument(skip(app_state))]
 async fn actions_leave(
     State(app_state): State<AppState>,
-    user_id: UserId,
-    Path(lobby_id): Path<LobbyId>,
+    user_id: user_id::UserId,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
 ) -> Result<Response, ApiError> {
     let mut lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
         .await?
@@ -591,7 +591,7 @@ impl ToResource for lobby::Query {
     }
 }
 
-impl ToResourceIdentifier for LobbyId {
+impl ToResourceIdentifier for lobby_id::LobbyId {
     const TYPE: &'static str = TYPE;
 
     fn __id(&self) -> String {

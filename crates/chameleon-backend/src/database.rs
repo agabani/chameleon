@@ -4,51 +4,13 @@ use chameleon_protocol::{
 };
 use sqlx::{postgres::PgListener, Executor, Pool, Postgres};
 
-use crate::{
-    domain::{lobby, LobbyId, LocalId, UserId},
-    domain_old::User,
-};
+use crate::domain::{lobby, lobby_id, local_id, user, user_id};
 
 pub struct Database {}
 
 impl Database {
     pub async fn listener(conn: &Pool<Postgres>) -> Result<PgListener, sqlx::Error> {
         PgListener::connect_with(conn).await
-    }
-
-    pub async fn insert_local<'c, E>(
-        conn: E,
-        local_id: LocalId,
-        user_id: UserId,
-    ) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"INSERT INTO local (public_id, user_id)
-            VALUES ($1,
-                    (SELECT id FROM "user" WHERE "user".public_id = $2));"#,
-            local_id.0,
-            user_id.0
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
-    }
-
-    pub async fn insert_user<'c, E>(conn: E, user: &User) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"INSERT INTO "user" (public_id, name)
-            VALUES ($1, $2);"#,
-            user.id.0,
-            user.name,
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
     }
 
     pub async fn query_lobby<'c, E>(
@@ -77,7 +39,7 @@ impl Database {
         let lobbies = records
             .into_iter()
             .map(|record| lobby::Query {
-                id: LobbyId(record.public_id),
+                id: lobby_id::LobbyId(record.public_id),
                 name: record.name,
                 require_passcode: record.require_passcode,
             })
@@ -88,9 +50,9 @@ impl Database {
 
     pub async fn query_lobby_member<'c, E>(
         conn: E,
-        lobby_id: LobbyId,
+        lobby_id: lobby_id::LobbyId,
         keyset_pagination: KeysetPagination,
-    ) -> Result<(Vec<User>, i64), sqlx::Error>
+    ) -> Result<(Vec<user::User>, i64), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
@@ -116,8 +78,8 @@ impl Database {
 
         let users = records
             .into_iter()
-            .map(|record| User {
-                id: UserId(record.public_id),
+            .map(|record| user::User {
+                id: user_id::UserId(record.public_id),
                 name: record.name,
             })
             .collect();
@@ -125,30 +87,10 @@ impl Database {
         Ok((users, last_record_id))
     }
 
-    pub async fn select_user<'c, E>(conn: E, user_id: UserId) -> Result<Option<User>, sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"SELECT u.public_id, u.name
-            FROM "user" u
-            WHERE u.public_id = $1;"#,
-            user_id.0
-        )
-        .fetch_optional(conn)
-        .await
-        .map(|record| {
-            record.map(|record| User {
-                id: UserId(record.public_id),
-                name: record.name,
-            })
-        })
-    }
-
     pub async fn select_user_id_by_local_id<'c, E>(
         conn: E,
-        local_id: LocalId,
-    ) -> Result<Option<UserId>, sqlx::Error>
+        local_id: local_id::LocalId,
+    ) -> Result<Option<user_id::UserId>, sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
@@ -159,30 +101,14 @@ impl Database {
             WHERE l.public_id = $1;"#,
             local_id.0,
         )
-        .map(|record| UserId(record.public_id))
+        .map(|record| user_id::UserId(record.public_id))
         .fetch_optional(conn)
         .await
     }
 
-    pub async fn update_user<'c, E>(conn: E, user: &User) -> Result<(), sqlx::Error>
-    where
-        E: Executor<'c, Database = Postgres>,
-    {
-        sqlx::query!(
-            r#"UPDATE "user"
-            SET name = $2
-            WHERE public_id = $1"#,
-            user.id.0,
-            user.name,
-        )
-        .execute(conn)
-        .await
-        .map(|_| ())
-    }
-
     pub async fn load_lobby<'c, E>(
         conn: E,
-        lobby_id: LobbyId,
+        lobby_id: lobby_id::LobbyId,
     ) -> Result<Option<lobby::Lobby>, sqlx::Error>
     where
         E: Executor<'c, Database = Postgres> + Copy,
@@ -214,13 +140,13 @@ impl Database {
         .await?;
 
         Ok(Some(lobby::Lobby {
-            id: LobbyId(lobby.public_id),
+            id: lobby_id::LobbyId(lobby.public_id),
             name: lobby.name,
             members: members
                 .into_iter()
                 .map(|member| lobby::Member {
                     host: member.host,
-                    user_id: UserId(member.public_id),
+                    user_id: user_id::UserId(member.public_id),
                 })
                 .collect(),
             passcode: lobby.passcode,
@@ -228,9 +154,32 @@ impl Database {
         }))
     }
 
+    pub async fn load_user<'c, E>(
+        conn: E,
+        user_id: user_id::UserId,
+    ) -> Result<Option<user::User>, sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"SELECT u.public_id, u.name
+            FROM "user" u
+            WHERE u.public_id = $1;"#,
+            user_id.0
+        )
+        .fetch_optional(conn)
+        .await
+        .map(|record| {
+            record.map(|record| user::User {
+                id: user_id::UserId(record.public_id),
+                name: record.name,
+            })
+        })
+    }
+
     pub async fn save_lobby(
         pool: &Pool<Postgres>,
-        lobby_id: LobbyId,
+        lobby_id: lobby_id::LobbyId,
         events: &[lobby::Events],
     ) -> Result<(), sqlx::Error> {
         let mut transaction = pool.begin().await?;
@@ -308,7 +257,35 @@ impl Database {
         Ok(())
     }
 
-    async fn delete_lobby<'c, E>(executor: E, lobby_id: LobbyId) -> Result<(), sqlx::Error>
+    pub async fn save_user(
+        pool: &Pool<Postgres>,
+        user_id: user_id::UserId,
+        events: &[user::Events],
+    ) -> Result<(), sqlx::Error> {
+        let mut transaction = pool.begin().await?;
+
+        for event in events {
+            match event {
+                user::Events::Created(event) => {
+                    Self::insert_user(&mut transaction, user_id, &event.name).await?;
+                }
+                user::Events::Linked(local_id) => {
+                    Self::insert_local(&mut transaction, *local_id, user_id).await?;
+                }
+                user::Events::Updated(event) => {
+                    Self::update_user(&mut transaction, user_id, &event.name).await?;
+                }
+            }
+        }
+
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    async fn delete_lobby<'c, E>(
+        executor: E,
+        lobby_id: lobby_id::LobbyId,
+    ) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
     {
@@ -324,8 +301,8 @@ impl Database {
 
     async fn delete_lobby_member<'c, E>(
         executor: E,
-        lobby_id: LobbyId,
-        user_id: UserId,
+        lobby_id: lobby_id::LobbyId,
+        user_id: user_id::UserId,
     ) -> Result<bool, sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
@@ -345,7 +322,7 @@ impl Database {
 
     async fn insert_lobby<'c, E>(
         executor: E,
-        id: LobbyId,
+        id: lobby_id::LobbyId,
         name: &str,
         passcode: &Option<String>,
         require_passcode: bool,
@@ -372,8 +349,8 @@ impl Database {
 
     async fn insert_lobby_member<'c, E>(
         executor: E,
-        lobby_id: LobbyId,
-        user_id: UserId,
+        lobby_id: lobby_id::LobbyId,
+        user_id: user_id::UserId,
     ) -> Result<(), sqlx::Error>
     where
         E: Executor<'c, Database = Postgres>,
@@ -393,9 +370,44 @@ impl Database {
         .map(|_| ())
     }
 
+    async fn insert_local<'c, E>(
+        conn: E,
+        local_id: local_id::LocalId,
+        user_id: user_id::UserId,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"INSERT INTO local (public_id, user_id)
+            VALUES ($1,
+                    (SELECT id FROM "user" WHERE "user".public_id = $2));"#,
+            local_id.0,
+            user_id.0
+        )
+        .execute(conn)
+        .await
+        .map(|_| ())
+    }
+
+    async fn insert_user<'c, E>(conn: E, id: user_id::UserId, name: &str) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"INSERT INTO "user" (public_id, name)
+            VALUES ($1, $2);"#,
+            id.0,
+            name,
+        )
+        .execute(conn)
+        .await
+        .map(|_| ())
+    }
+
     async fn notify_lobby<'c, E>(
         conn: E,
-        lobby_id: LobbyId,
+        lobby_id: lobby_id::LobbyId,
         lobby_request: LobbyRequest,
     ) -> Result<(), sqlx::Error>
     where
@@ -417,7 +429,7 @@ impl Database {
 
     async fn update_lobby<'c, E>(
         executor: E,
-        lobby_id: LobbyId,
+        lobby_id: lobby_id::LobbyId,
         name: &str,
         passcode: &Option<String>,
         require_passcode: bool,
@@ -443,8 +455,8 @@ impl Database {
 
     async fn update_lobby_member_host<'c, E>(
         executor: E,
-        lobby_id: LobbyId,
-        user_id: UserId,
+        lobby_id: lobby_id::LobbyId,
+        user_id: user_id::UserId,
         host: bool,
     ) -> Result<(), sqlx::Error>
     where
@@ -460,6 +472,26 @@ impl Database {
             host
         )
         .execute(executor)
+        .await
+        .map(|_| ())
+    }
+
+    async fn update_user<'c, E>(
+        conn: E,
+        user_id: user_id::UserId,
+        name: &str,
+    ) -> Result<(), sqlx::Error>
+    where
+        E: Executor<'c, Database = Postgres>,
+    {
+        sqlx::query!(
+            r#"UPDATE "user"
+            SET name = $2
+            WHERE public_id = $1"#,
+            user_id.0,
+            name,
+        )
+        .execute(conn)
         .await
         .map(|_| ())
     }

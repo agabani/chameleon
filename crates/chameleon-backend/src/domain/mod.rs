@@ -1,8 +1,5 @@
 pub mod lobby;
-mod lobby_id;
-mod local_id;
-mod user_id;
-
-pub use lobby_id::LobbyId;
-pub use local_id::LocalId;
-pub use user_id::UserId;
+pub mod lobby_id;
+pub mod local_id;
+pub mod user;
+pub mod user_id;

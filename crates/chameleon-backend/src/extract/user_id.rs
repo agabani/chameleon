@@ -6,11 +6,11 @@ use chameleon_protocol::jsonapi::{self, Source};
 use crate::{
     app::AppState,
     database::Database,
-    domain::{LocalId, UserId},
+    domain::{local_id, user_id},
     error::ApiError,
 };
 
-impl FromRequestParts<AppState> for UserId {
+impl FromRequestParts<AppState> for user_id::UserId {
     type Rejection = ApiError;
 
     fn from_request_parts<'life0, 'life1, 'async_trait>(
@@ -23,7 +23,7 @@ impl FromRequestParts<AppState> for UserId {
         Self: 'async_trait,
     {
         Box::pin(async move {
-            let local_id = LocalId::from_request_parts(parts, state).await?;
+            let local_id = local_id::LocalId::from_request_parts(parts, state).await?;
 
             Database::select_user_id_by_local_id(&state.postgres_pool, local_id)
                 .await?

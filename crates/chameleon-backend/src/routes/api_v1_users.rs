@@ -13,8 +13,7 @@ use chameleon_protocol::{
 use crate::{
     app::AppState,
     database::Database,
-    domain::{LocalId, UserId},
-    domain_old::User,
+    domain::{local_id, user, user_id},
     error::ApiError,
 };
 
@@ -34,7 +33,7 @@ pub fn router() -> Router<AppState> {
 #[tracing::instrument(skip(state))]
 async fn create_one(
     State(state): State<AppState>,
-    local_id: LocalId,
+    local_id: local_id::LocalId,
     Json(document): Json<ResourcesDocument<UserAttributes>>,
 ) -> Result<Response, ApiError> {
     if Database::select_user_id_by_local_id(&state.postgres_pool, local_id)
@@ -53,19 +52,18 @@ async fn create_one(
         })));
     }
 
-    let user = User {
-        id: UserId::random(),
-        name: document
-            .try_get_resources()?
-            .try_get_individual()?
-            .try_get_attribute(|a| a.name.as_ref(), "name", "Name")?
-            .clone(),
-    };
+    let name = document
+        .try_get_resources()?
+        .try_get_individual()?
+        .try_get_attribute(|a| a.name.as_ref(), "name", "Name")?;
 
-    let mut conn = state.postgres_pool.begin().await?;
-    Database::insert_user(&mut conn, &user).await?;
-    Database::insert_local(&mut conn, local_id, user.id).await?;
-    conn.commit().await?;
+    let user = match user::User::signup(local_id, name) {
+        Ok((user, events)) => {
+            Database::save_user(&state.postgres_pool, user.id, &events).await?;
+            user
+        }
+        Err(error) => match error {},
+    };
 
     let document = ResourcesDocument {
         data: Some(Resources::Individual(user.to_resource(Variation::Root))),
@@ -86,10 +84,10 @@ async fn create_one(
 #[tracing::instrument(skip(state))]
 async fn get_one(
     State(state): State<AppState>,
-    local_id: LocalId,
-    Path(id): Path<UserId>,
+    local_id: local_id::LocalId,
+    Path(id): Path<user_id::UserId>,
 ) -> Result<Response, ApiError> {
-    let user = Database::select_user(&state.postgres_pool, id)
+    let user = Database::load_user(&state.postgres_pool, id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
 
@@ -107,28 +105,28 @@ async fn get_one(
 #[tracing::instrument(skip(state))]
 async fn update_one(
     State(state): State<AppState>,
-    user_id: UserId,
-    Path(id): Path<UserId>,
+    user_id: user_id::UserId,
+    Path(id): Path<user_id::UserId>,
     Json(document): Json<ResourcesDocument<UserAttributes>>,
 ) -> Result<Response, ApiError> {
-    if user_id != id {
-        return Err(ApiError::JsonApi(Box::new(jsonapi::Error {
-            status: 403,
-            source: None,
-            title: Some("Forbidden".to_string()),
-            detail: Some("You do not have sufficient permissions to update this user".to_string()),
-        })));
-    }
-
-    let mut user = Database::select_user(&state.postgres_pool, id)
+    let mut user = Database::load_user(&state.postgres_pool, id)
         .await?
         .ok_or_else(|| ApiError::JsonApi(Box::new(jsonapi::Error::not_found("user", "User"))))?;
 
-    let resource = document.try_get_resources()?.try_get_individual()?;
+    let name = document
+        .try_get_attribute(|accessor| accessor.name.as_ref(), "name", "Name")
+        .ok()
+        .map(String::as_str);
 
-    if let Some(attributes) = &resource.attributes {
-        user = user.update_attributes(attributes);
-        Database::update_user(&state.postgres_pool, &user).await?;
+    match user.update(user_id, name) {
+        Ok(events) => {
+            Database::save_user(&state.postgres_pool, user.id, &events).await?;
+        }
+        Err(error) => match error {
+            user::UpdateError::NotOwner => {
+                return Err(ApiError::JsonApi(Box::new(jsonapi::Error::forbidden())));
+            }
+        },
     }
 
     let document = ResourcesDocument {
@@ -142,16 +140,7 @@ async fn update_one(
     Ok((StatusCode::OK, Json(document)).into_response())
 }
 
-impl User {
-    pub fn update_attributes(&self, attributes: &UserAttributes) -> Self {
-        Self {
-            id: self.id,
-            name: attributes.name.as_ref().unwrap_or(&self.name).clone(),
-        }
-    }
-}
-
-impl ToResource for User {
+impl ToResource for user::User {
     const PATH: &'static str = PATH;
 
     const TYPE: &'static str = TYPE;
@@ -173,7 +162,7 @@ impl ToResource for User {
     }
 }
 
-impl ToResourceIdentifier for UserId {
+impl ToResourceIdentifier for user_id::UserId {
     const TYPE: &'static str = TYPE;
 
     fn __id(&self) -> String {

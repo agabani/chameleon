@@ -4,9 +4,9 @@ use std::str::FromStr;
 use axum::{extract::FromRequestParts, http::request::Parts};
 use chameleon_protocol::jsonapi::{self, Source};
 
-use crate::{domain::LocalId, error::ApiError};
+use crate::{domain::local_id, error::ApiError};
 
-impl<S> FromRequestParts<S> for LocalId {
+impl<S> FromRequestParts<S> for local_id::LocalId {
     type Rejection = ApiError;
 
     fn from_request_parts<'life0, 'life1, 'async_trait>(
@@ -36,7 +36,7 @@ impl<S> FromRequestParts<S> for LocalId {
                     }))
                 })?;
 
-            LocalId::from_str(header).map_err(|error| {
+            local_id::LocalId::from_str(header).map_err(|error| {
                 ApiError::JsonApi(Box::new(jsonapi::Error {
                     status: 400,
                     source: Some(Source {

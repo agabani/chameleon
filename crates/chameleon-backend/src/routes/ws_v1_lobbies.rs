@@ -23,7 +23,7 @@ use tracing::Instrument;
 use crate::{
     app::AppState,
     database::Database,
-    domain::{lobby, LobbyId, LocalId, UserId},
+    domain::{lobby, lobby_id, local_id, user_id},
     error::ApiError,
 };
 
@@ -36,7 +36,7 @@ pub fn router() -> Router<AppState> {
 #[tracing::instrument(skip(app_state, web_socket_upgrade))]
 async fn get_one(
     State(app_state): State<AppState>,
-    Path(lobby_id): Path<LobbyId>,
+    Path(lobby_id): Path<lobby_id::LobbyId>,
     web_socket_upgrade: WebSocketUpgrade,
 ) -> Result<Response, ApiError> {
     let lobby = Database::load_lobby(&app_state.postgres_pool, lobby_id)
@@ -143,7 +143,7 @@ async fn authentication(
     app_state: &AppState,
     stream: &mut SplitStream<WebSocket>,
     sink: &mut SplitSink<WebSocket, Message>,
-) -> Result<Option<UserId>, axum::Error> {
+) -> Result<Option<user_id::UserId>, axum::Error> {
     while let Some(message) = stream.next().await {
         let Message::Text(text) = message? else {
             continue;
@@ -169,7 +169,7 @@ async fn authentication(
             continue;
         };
 
-        let Ok(local_id) = LocalId::from_str(&local_id) else {
+        let Ok(local_id) = local_id::LocalId::from_str(&local_id) else {
             sink.send(Message::Text(LobbyFrame::parse_error().to_string().unwrap())).await.unwrap();
             continue;
         };
