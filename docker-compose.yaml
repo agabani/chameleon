@@ -6,9 +6,12 @@ services:
     ports:
       - 3000:3000
     restart: unless-stopped
+    depends_on:
+      - postgres
   postgres:
     image: postgres:latest
     environment:
       POSTGRES_DB: chameleon
       POSTGRES_PASSWORD: password
-
+    ports:
+      - 5432:5432

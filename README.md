@@ -2,27 +2,15 @@
 
 ## Getting Started
 
-Install dependencies:
+Run locally:
 
 ```terminal
-rustup target add wasm32-unknown-unknown
-cargo install --locked sqlx-cli trunk
+make run-backend
+make run-frontend
 ```
 
-Provision database:
+Run using docker-compose:
 
 ```terminal
-sqlx database setup --source .\crates\chameleon-backend\migrations\
-```
-
-Run backend:
-
-```terminal
-cargo run --bin chameleon-backend
-```
-
-Run frontend:
-
-```terminal
-trunk serve
+make docker-compose/up
 ```
