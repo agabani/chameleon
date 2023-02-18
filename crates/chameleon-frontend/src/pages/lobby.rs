@@ -53,28 +53,33 @@ pub fn Lobby(props: &Props) -> Html {
 
     html! {
         <div class="lobby">
-            <div>{ "=== lobby ===" }</div>
-            <div>{ "name: "} { present_lobby_name(&state) }</div>
-            <div>{ "=== lobby members ===" }</div>
-            <LobbyMemberList>
-            {
-                present_members(&state).iter().map(|(id, name)| html! {
-                    <LobbyMemberListItem key={id.as_str()} id={id} name={name} />
-                }).collect::<Html>()
-            }
-            </LobbyMemberList>
-
-            <div>{ "=== lobby chat ===" }</div>
-            <LobbyChatList>
-            {
-                present_messages(&state).iter().map(|(key, _, name, content)| html! {
-                    <LobbyChatListItem key={key.to_string()} name={name} message={content} />
-                }).collect::<Html>()
-            }
-            </LobbyChatList>
-            <LobbyChatInput disabled={!state.authenticated} onsubmit={onsubmit} />
-
-            <div><button onclick={onclick}>{ "leave" }</button></div>
+            <div class="lobby--grid-item-settings">
+                <div>{ "=== lobby ===" }</div>
+                <div>{ "name: "} { present_lobby_name(&state) }</div>
+                <div><button onclick={onclick}>{ "leave" }</button></div>
+            </div>
+            <div class="lobby--grid-item-members">
+                <div>{ "=== lobby members ===" }</div>
+                <LobbyMemberList>
+                {
+                    present_members(&state).iter().map(|(id, name)| html! {
+                        <LobbyMemberListItem key={id.as_str()} id={id} name={name} />
+                    }).collect::<Html>()
+                }
+                </LobbyMemberList>
+            </div>
+            <div class="lobby--grid-item-chat">
+                <LobbyChatList>
+                {
+                    present_messages(&state).iter().map(|(key, _, name, content)| html! {
+                        <LobbyChatListItem key={key.to_string()} name={name} message={content} />
+                    }).collect::<Html>()
+                }
+                </LobbyChatList>
+            </div>
+            <div class="lobby--grid-item-chat-input">
+                <LobbyChatInput disabled={!state.authenticated} onsubmit={onsubmit} />
+            </div>
         </div>
     }
 }

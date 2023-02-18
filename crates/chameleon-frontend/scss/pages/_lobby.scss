@@ -6,6 +6,38 @@
   // container
   height: $height;
 
+  // grid
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr 3em;
+
+  grid-template-areas:
+    "settings settings settings settings"
+    "members chat chat chat"
+    "members chat chat chat"
+    "members chat-input chat-input chat-input";
+
+  &--grid-item-settings {
+    grid-area: settings;
+  }
+
+  &--grid-item-members {
+    grid-area: members;
+  }
+
+  &--grid-item-chat {
+    grid-area: chat;
+  }
+
+  &--grid-item-chat-input {
+    grid-area: chat-input;
+  }
+
+  // formatting
+  &--grid-item-chat {
+    overflow-y: scroll;
+  }
+
   @if $debug {
     border: 1px solid darkcyan;
     box-sizing: border-box;
